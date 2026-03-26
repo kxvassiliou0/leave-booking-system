@@ -1,0 +1,108 @@
+classDiagram
+    class RoleType {
+        <<enumeration>>
+        Employee
+        Manager
+        Admin
+    }
+
+    class LeaveType {
+        <<enumeration>>
+        Vacation
+        Sick
+        Personal
+    }
+
+    class LeaveStatus {
+        <<enumeration>>
+        Pending
+        Approved
+        Rejected
+        Cancelled
+    }
+
+    class RoleInterface["Role"] {
+        <<interface>>
+        +number roleId
+        +RoleType name
+    }
+
+    class UserInterface["User"] {
+        <<interface>>
+        +number userId
+        +string firstname
+        +string surname
+        +string email
+        +string password
+        +string salt
+        +Role role
+        +number annualLeaveBalance
+    }
+
+    class LeaveRequestInterface["LeaveRequest"] {
+        <<interface>>
+        +number leaveRequestId
+        +number userId
+        +LeaveType leaveType
+        +Date startDate
+        +Date endDate
+        +LeaveStatus status
+        +string reason
+    }
+
+    class UserManagementInterface["UserManagement"] {
+        <<interface>>
+        +number id
+        +number userId
+        +number managerId
+        +Date startDate
+        +Date endDate
+    }
+
+    class Role {
+        +number roleId
+        +RoleType name
+        +toString() string
+    }
+
+    class User {
+        +number userId
+        +string firstname
+        +string surname
+        +string email
+        +string password
+        +string salt
+        +Role role
+        +number annualLeaveBalance
+        +toString() string
+    }
+
+    class LeaveRequest {
+        +number leaveRequestId
+        +number userId
+        +LeaveType leaveType
+        +Date startDate
+        +Date endDate
+        +LeaveStatus status
+        +string reason
+        +toString() string
+    }
+
+    class UserManagement {
+        +number id
+        +number userId
+        +number managerId
+        +Date startDate
+        +Date endDate
+        +toString() string
+    }
+
+    Role ..|> RoleInterface : implements
+    User ..|> UserInterface : implements
+    LeaveRequest ..|> LeaveRequestInterface : implements
+    UserManagement ..|> UserManagementInterface : implements
+
+    User *-- Role
+    Role ..> RoleType : uses
+    LeaveRequest ..> LeaveType : uses
+    LeaveRequest ..> LeaveStatus : uses

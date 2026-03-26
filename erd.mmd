@@ -1,0 +1,37 @@
+erDiagram
+
+    DEPARTMENT {
+        int id PK
+        string name UNIQUE
+    }
+
+    USER {
+        int id PK
+        string firstName
+        string lastName
+        string email UNIQUE
+        string password
+        enum role
+        int annualLeaveAllowance DEFAULT 28
+        int departmentId FK
+        int managerId FK NULL
+    }
+
+    LEAVE_REQUEST {
+        int id PK
+        date startDate
+        date endDate
+        int daysRequested
+        enum status DEFAULT PENDING
+        datetime createdAt
+        int userId FK
+        int reviewedById FK NULL
+    }
+
+    DEPARTMENT ||--o{ USER : contains
+
+    USER ||--o{ USER : manages
+
+    USER ||--o{ LEAVE_REQUEST : submits
+
+    USER ||--o{ LEAVE_REQUEST : reviews
