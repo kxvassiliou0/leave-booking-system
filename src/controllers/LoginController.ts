@@ -40,7 +40,7 @@ export class LoginController {
         throw new Error(LoginController.ERROR_PASSWORD_INCORRECT)
       }
 
-      const token = new UserDTOToken(user.email, user.role)
+      const token = new UserDTOToken(user.id, user.email, user.role)
 
       res.status(StatusCodes.ACCEPTED).send(
         jwt.sign({ token }, process.env.JWT_SECRET_KEY as string, { expiresIn: '3h' })

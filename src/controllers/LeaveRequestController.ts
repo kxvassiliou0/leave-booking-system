@@ -1,4 +1,4 @@
-import { LeaveStatus, LeaveType } from '@enums'
+import { LeaveStatus, LeaveType, RoleType } from '@enums'
 import { validate } from 'class-validator'
 import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
@@ -78,7 +78,11 @@ export class LeaveRequestController {
 
   createLeaveRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { employee_id, start_date, end_date, leave_type, reason } = req.body
+      const signedInUser = (req as any).signedInUser?.token
+      const isAdmin = signedInUser?.role === RoleType.Admin
+
+      const employee_id = isAdmin ? req.body.employee_id : signedInUser?.id
+      const { start_date, end_date, leave_type, reason } = req.body
 
       if (!employee_id || isNaN(Number(employee_id))) {
         ResponseHandler.sendErrorResponse(
