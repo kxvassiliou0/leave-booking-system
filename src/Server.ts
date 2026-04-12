@@ -4,7 +4,7 @@ import morgan, { type StreamOptions } from 'morgan'
 import { type DataSource } from 'typeorm'
 import { Logger } from './helpers/Logger.ts'
 import { ResponseHandler } from './helpers/ResponseHandler.ts'
-import { type RoleRouter } from './routes/RoleRouter'
+import { type JobRoleRouter } from './routes/JobRoleRouter.ts'
 import { type UserRouter } from './routes/UserRouter.ts'
 import { type LeaveRouter } from './routes/LeaveRouter.ts'
 
@@ -13,7 +13,7 @@ export class Server {
 
   constructor(
     private readonly port: string | number,
-    private readonly roleRouter: RoleRouter,
+    private readonly jobRoleRouter: JobRoleRouter,
     private readonly userRouter: UserRouter,
     private readonly leaveRouter: LeaveRouter,
     private readonly appDataSource: DataSource
@@ -37,7 +37,7 @@ export class Server {
   }
 
   private initialiseRoutes(): void {
-    this.app.use('/api/roles', this.roleRouter.getRouter())
+    this.app.use('/api/job-roles', this.jobRoleRouter.getRouter())
     this.app.use('/api/users', this.userRouter.getRouter())
     this.app.use('/api/leave-requests', this.leaveRouter.getRouter())
   }

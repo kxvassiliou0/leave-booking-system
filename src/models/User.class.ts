@@ -1,4 +1,4 @@
-import { Role } from '.'
+import { Department, JobRole, Role } from '.'
 import type { User as UserContract } from '@interfaces'
 
 export class User implements UserContract {
@@ -11,10 +11,12 @@ export class User implements UserContract {
     public readonly email: string,
     public readonly password: string,
     public readonly salt: string,
-    public readonly role: Role
+    public readonly role: Role,
+    public readonly jobRole: JobRole,
+    public readonly department: Department
   ) {}
 
   toString(): string {
-    return `User [userId=${this.userId}, name=${this.firstname} ${this.surname}, email=${this.email}, role=${this.role.name}, annualLeaveBalance=${this.annualLeaveBalance}]`
+    return `User [userId=${this.userId}, name=${this.firstname} ${this.surname}, email=${this.email}, role=${this.role.name}, jobRole=${this.jobRole.name}, department=${this.department.name}, annualLeaveBalance=${this.annualLeaveBalance}]`
   }
 }

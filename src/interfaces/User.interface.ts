@@ -1,4 +1,4 @@
-import type { Role } from '.'
+import type { Department, JobRole, Role } from '.'
 
 export interface User {
   readonly userId: number
@@ -8,5 +8,7 @@ export interface User {
   readonly password: string
   readonly salt: string
   readonly role: Role
+  readonly jobRole: JobRole
+  readonly department: Department
   annualLeaveBalance: number
 }

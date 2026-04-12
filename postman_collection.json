@@ -1,167 +1,53 @@
 {
   "info": {
     "name": "Leave Management System",
-    "description": "API collection for the Leave Management System assignment. Import this file into Postman and set the `baseUrl` collection variable. Run the seed script before testing to populate the database.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000/api", "type": "string" },
-    { "key": "leaveRequestId", "value": "", "type": "string", "description": "Set automatically after running Create Leave Request" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    }
   ],
   "item": [
     {
-      "name": "Roles",
+      "name": "Job Roles",
       "item": [
         {
-          "name": "Get All Roles (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Returns array', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data).to.be.an('array');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Get All Job Roles",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/roles"
+            "url": "{{baseUrl}}/job-roles"
           }
         },
         {
-          "name": "Get Role by ID (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Has id and name', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data).to.have.property('id');",
-                  "  pm.expect(json.data).to.have.property('name');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Get Job Role by ID",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/roles/1"
+            "url": "{{baseUrl}}/job-roles/1"
           }
         },
         {
-          "name": "Get Role by ID — Invalid ID (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/roles/abc"
-          }
-        },
-        {
-          "name": "Get Role by ID — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/roles/99999"
-          }
-        },
-        {
-          "name": "Create Role (201)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('Has id and name', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data).to.have.property('id');",
-                  "  pm.expect(json.data.name).to.equal('Contractor');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Create Job Role",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/roles",
+            "url": "{{baseUrl}}/job-roles",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Contractor\"\n}"
+              "raw": "{\n  \"name\": \"Lead Engineer\"\n}"
             }
           }
         },
         {
-          "name": "Create Role — Missing Name (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/roles",
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            }
-          }
-        },
-        {
-          "name": "Update Role (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Name updated', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data.name).to.equal('Senior Contractor');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Update Job Role",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/roles/1",
+            "url": "{{baseUrl}}/job-roles/1",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Senior Contractor\"\n}"
@@ -169,61 +55,11 @@
           }
         },
         {
-          "name": "Update Role — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/roles/99999",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Ghost Role\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Role (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ],
+          "name": "Delete Job Role",
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/roles/1"
-          }
-        },
-        {
-          "name": "Delete Role — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": "{{baseUrl}}/roles/99999"
+            "url": "{{baseUrl}}/job-roles/1"
           }
         }
       ]
@@ -232,21 +68,7 @@
       "name": "Users",
       "item": [
         {
-          "name": "Get All Users (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Returns array', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data).to.be.an('array');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Get All Users",
           "request": {
             "method": "GET",
             "header": [],
@@ -254,24 +76,7 @@
           }
         },
         {
-          "name": "Get User by ID (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Has required fields', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data).to.have.property('id');",
-                  "  pm.expect(json.data).to.have.property('firstName');",
-                  "  pm.expect(json.data).to.have.property('email');",
-                  "  pm.expect(json.data).to.have.property('role');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Get User by ID",
           "request": {
             "method": "GET",
             "header": [],
@@ -279,128 +84,19 @@
           }
         },
         {
-          "name": "Get User by ID — Invalid ID (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/users/abc"
-          }
-        },
-        {
-          "name": "Get User by ID — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/users/99999"
-          }
-        },
-        {
-          "name": "Create User (201)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('Has id and email', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data).to.have.property('id');",
-                  "  pm.expect(json.data.email).to.equal('henry.james@company.com');",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Create User",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/users",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Henry\",\n  \"lastName\": \"James\",\n  \"email\": \"henry.james@company.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"Employee\",\n  \"annualLeaveAllowance\": 28,\n  \"departmentId\": 1,\n  \"managerId\": 2\n}"
+              "raw": "{\n  \"firstName\": \"Henry\",\n  \"lastName\": \"James\",\n  \"email\": \"henry.james@company.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"Employee\",\n  \"annualLeaveAllowance\": 28,\n  \"departmentId\": 1,\n  \"jobRoleId\": 1,\n  \"managerId\": 2\n}"
             }
           }
         },
         {
-          "name": "Create User — Invalid Email (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/users",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Henry\",\n  \"lastName\": \"James\",\n  \"email\": \"not-an-email\",\n  \"password\": \"Password123!\",\n  \"role\": \"Employee\",\n  \"departmentId\": 1\n}"
-            }
-          }
-        },
-        {
-          "name": "Create User — Missing Required Fields (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/users",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Henry\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Update User (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Leave allowance updated', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.data.annualLeaveAllowance).to.equal(30);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Update User",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -412,61 +108,11 @@
           }
         },
         {
-          "name": "Update User — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/users/99999",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"annualLeaveAllowance\": 30\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete User (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ],
+          "name": "Delete User",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/users/7"
-          }
-        },
-        {
-          "name": "Delete User — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": "{{baseUrl}}/users/99999"
           }
         }
       ]
@@ -475,280 +121,87 @@
       "name": "Leave Requests",
       "item": [
         {
-          "name": "Create Leave Request (201)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const json = pm.response.json();",
-                  "pm.test('Status is Pending', () => pm.expect(json.data.status).to.equal('Pending'));",
-                  "pm.test('managerNote is null', () => pm.expect(json.data.managerNote).to.be.null);",
-                  "if (json.data && json.data.id) pm.collectionVariables.set('leaveRequestId', json.data.id);"
-                ]
-              }
-            }
-          ],
+          "name": "Request Leave",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": 5,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-09-05\",\n  \"leaveType\": \"Vacation\",\n  \"reason\": \"Summer holiday\"\n}"
+              "raw": "{\n  \"employee_id\": 5,\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2026-09-05\"\n}"
             }
           }
         },
         {
-          "name": "Create Leave Request — Invalid leaveType (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
+          "name": "Cancel Leave Request",
           "request": {
-            "method": "POST",
+            "method": "DELETE",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": 4,\n  \"startDate\": \"2026-10-01\",\n  \"endDate\": \"2026-10-03\",\n  \"leaveType\": \"Holiday\"\n}"
+              "raw": "{\n  \"employee_id\": 5,\n  \"leave_request_id\": 2\n}"
             }
           }
         },
         {
-          "name": "Create Leave Request — Missing userId (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"startDate\": \"2026-10-01\",\n  \"endDate\": \"2026-10-03\",\n  \"leaveType\": \"Vacation\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Create Leave Request — Missing Required Fields (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"userId\": 4\n}"
-            }
-          }
-        },
-        {
-          "name": "Create Leave Request — User Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"userId\": 99999,\n  \"startDate\": \"2026-10-01\",\n  \"endDate\": \"2026-10-03\",\n  \"leaveType\": \"Vacation\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Approve Leave Request (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const json = pm.response.json();",
-                  "pm.test('Status is Approved', () => pm.expect(json.data.status).to.equal('Approved'));",
-                  "pm.test('managerNote stored', () => pm.expect(json.data.managerNote).to.be.a('string'));"
-                ]
-              }
-            }
-          ],
+          "name": "Approve Leave Request",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests/approve",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 2,\n  \"reviewerId\": 2,\n  \"managerNote\": \"Approved — enjoy your time off!\"\n}"
+              "raw": "{\n  \"leave_request_id\": 2,\n  \"reason\": \"Approved - enjoy your time off!\"\n}"
             }
           }
         },
         {
-          "name": "Approve Leave Request — Invalid ID (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests/approve",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": \"abc\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Approve Leave Request — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests/approve",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 99999\n}"
-            }
-          }
-        },
-        {
-          "name": "Reject Leave Request (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const json = pm.response.json();",
-                  "pm.test('Status is Rejected', () => pm.expect(json.data.status).to.equal('Rejected'));",
-                  "pm.test('managerNote stored', () => pm.expect(json.data.managerNote).to.be.a('string'));"
-                ]
-              }
-            }
-          ],
+          "name": "Reject Leave Request",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests/reject",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 6,\n  \"reviewerId\": 2,\n  \"managerNote\": \"Team at capacity during this period.\"\n}"
+              "raw": "{\n  \"leave_request_id\": 6,\n  \"reason\": \"Team at capacity during this period.\"\n}"
             }
           }
         },
         {
-          "name": "Reject Leave Request — Invalid ID (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
+          "name": "View All Leave Requests (Company-wide)",
           "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests/reject",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": \"abc\"\n}"
-            }
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leave-requests"
           }
         },
         {
-          "name": "Reject Leave Request — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
+          "name": "View All Leave Requests (by Employee)",
           "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests/reject",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 99999\n}"
-            }
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leave-requests?employee_id=4"
           }
         },
         {
-          "name": "View Leave Status by Employee (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const json = pm.response.json();",
-                  "pm.test('Returns array', () => pm.expect(json.data).to.be.an('array'));",
-                  "if (json.data.length > 0) {",
-                  "  pm.test('Each item has required fields', () => {",
-                  "    const item = json.data[0];",
-                  "    pm.expect(item).to.have.property('id');",
-                  "    pm.expect(item).to.have.property('startDate');",
-                  "    pm.expect(item).to.have.property('endDate');",
-                  "    pm.expect(item).to.have.property('status');",
-                  "  });",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "View All Leave Requests (by Manager's Team)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leave-requests?manager_id=2"
+          }
+        },
+        {
+          "name": "View Pending Requests for Manager's Team",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leave-requests/pending/manager/2"
+          }
+        },
+        {
+          "name": "View Leave Status by Employee",
           "request": {
             "method": "GET",
             "header": [],
@@ -756,173 +209,11 @@
           }
         },
         {
-          "name": "View Leave Status — Employee Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/status/99999"
-          }
-        },
-        {
-          "name": "View Leave Status — Invalid Employee ID (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/status/abc"
-          }
-        },
-        {
-          "name": "View Remaining Leave (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const json = pm.response.json();",
-                  "pm.test('Has annualLeaveAllowance', () => pm.expect(json.data).to.have.property('annualLeaveAllowance'));",
-                  "pm.test('Has usedDays', () => pm.expect(json.data).to.have.property('usedDays'));",
-                  "pm.test('Has remainingDays', () => pm.expect(json.data).to.have.property('remainingDays'));",
-                  "pm.test('Remaining = allowance - used', () => {",
-                  "  const d = json.data;",
-                  "  pm.expect(d.remainingDays).to.equal(d.annualLeaveAllowance - d.usedDays);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "View Remaining Leave",
           "request": {
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/leave-requests/remaining/4"
-          }
-        },
-        {
-          "name": "View Remaining Leave — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/remaining/99999"
-          }
-        },
-        {
-          "name": "Delete Leave Request (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const json = pm.response.json();",
-                  "pm.test('Success message', () => pm.expect(json.data.message).to.include('deleted'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 2,\n  \"userId\": 4\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Leave Request — Wrong User (403)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 2,\n  \"userId\": 5\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Leave Request — Not Found (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": 99999,\n  \"userId\": 4\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Leave Request — Invalid ID (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{baseUrl}}/leave-requests",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"leaveRequestId\": \"abc\",\n  \"userId\": 4\n}"
-            }
           }
         }
       ]

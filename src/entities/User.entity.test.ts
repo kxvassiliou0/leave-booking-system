@@ -7,10 +7,11 @@ function makeValidUser(): User {
   user.firstName = 'Alice'
   user.lastName = 'Johnson'
   user.email = 'alice@company.com'
-  user.password = 'password'
+  user.password = 'Password123!'
   user.role = RoleType.Employee
-  user.annualLeaveAllowance = 28
+  user.annualLeaveAllowance = 25
   user.departmentId = 1
+  user.jobRoleId = 1
   return user
 }
 

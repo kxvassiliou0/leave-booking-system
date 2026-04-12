@@ -21,6 +21,18 @@ classDiagram
         Cancelled
     }
 
+    class DepartmentInterface["Department"] {
+        <<interface>>
+        +number departmentId
+        +string name
+    }
+
+    class JobRoleInterface["JobRole"] {
+        <<interface>>
+        +number jobRoleId
+        +string name
+    }
+
     class RoleInterface["Role"] {
         <<interface>>
         +number roleId
@@ -36,6 +48,8 @@ classDiagram
         +string password
         +string salt
         +Role role
+        +JobRole jobRole
+        +Department department
         +number annualLeaveBalance
     }
 
@@ -59,6 +73,18 @@ classDiagram
         +Date endDate
     }
 
+    class Department {
+        +number departmentId
+        +string name
+        +toString() string
+    }
+
+    class JobRole {
+        +number jobRoleId
+        +string name
+        +toString() string
+    }
+
     class Role {
         +number roleId
         +RoleType name
@@ -73,6 +99,8 @@ classDiagram
         +string password
         +string salt
         +Role role
+        +JobRole jobRole
+        +Department department
         +number annualLeaveBalance
         +toString() string
     }
@@ -97,12 +125,16 @@ classDiagram
         +toString() string
     }
 
+    Department ..|> DepartmentInterface : implements
+    JobRole ..|> JobRoleInterface : implements
     Role ..|> RoleInterface : implements
     User ..|> UserInterface : implements
     LeaveRequest ..|> LeaveRequestInterface : implements
     UserManagement ..|> UserManagementInterface : implements
 
-    User *-- Role
+    User *-- Role : systemRole
+    User *-- JobRole : jobRole
+    User *-- Department : department
     Role ..> RoleType : uses
     LeaveRequest ..> LeaveType : uses
     LeaveRequest ..> LeaveStatus : uses

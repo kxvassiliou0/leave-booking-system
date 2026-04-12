@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { BeforeInsert, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import {
   IsEmail,
   IsEnum,
@@ -7,10 +7,13 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  MinLength,
 } from 'class-validator'
 import { RoleType } from '@enums'
 import { Department } from './Department.entity.ts'
+import { JobRole } from './JobRole.entity.ts'
 import { LeaveRequest } from './LeaveRequest.entity.ts'
+import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 
 @Entity()
 export class User {
@@ -31,16 +34,20 @@ export class User {
   @IsEmail()
   email!: string
 
-  @Column()
+  @Column({ select: false })
   @IsNotEmpty()
   @IsString()
+  @MinLength(10, { message: 'Password must be at least 10 characters long' })
   password!: string
+
+  @Column({ length: 32, select: false })
+  salt!: string
 
   @Column({ type: 'simple-enum', enum: RoleType })
   @IsEnum(RoleType)
   role!: RoleType
 
-  @Column({ default: 28 })
+  @Column({ default: 25 })
   @IsInt()
   @IsPositive()
   annualLeaveAllowance!: number
@@ -52,6 +59,14 @@ export class User {
   @IsInt()
   @IsPositive()
   departmentId!: number
+
+  @ManyToOne(() => JobRole, (jobRole: JobRole) => jobRole.users)
+  jobRole!: JobRole
+
+  @Column()
+  @IsInt()
+  @IsPositive()
+  jobRoleId!: number
 
   @ManyToOne(() => User, (user: User) => user.subordinates, { nullable: true })
   manager!: User | null
@@ -69,4 +84,14 @@ export class User {
 
   @OneToMany(() => LeaveRequest, (leaveRequest: LeaveRequest) => leaveRequest.reviewedBy)
   reviewedLeaveRequests!: LeaveRequest[]
+
+  @BeforeInsert()
+  hashPassword(): void {
+    if (!this.password) {
+      throw new Error('Password must be provided before inserting a user.')
+    }
+    const { hashedPassword, salt } = PasswordHandler.hashPassword(this.password)
+    this.password = hashedPassword
+    this.salt = salt
+  }
 }

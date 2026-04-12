@@ -1,15 +1,22 @@
 import { LeaveStatus, LeaveType, RoleType } from '@enums'
 import type { LeaveRequest as LeaveRequestContract, User as UserContract } from '@interfaces'
 import 'reflect-metadata'
+import { DataSource } from 'typeorm'
+import { config } from 'dotenv'
 import { AppDataSource } from './data_source.ts'
 import { Department } from './entities/Department.entity.ts'
+import { PasswordHandler } from './helpers/PasswordHandler.ts'
+import { JobRole } from './entities/JobRole.entity.ts'
 import { LeaveRequest } from './entities/LeaveRequest.entity.ts'
 import { User } from './entities/User.entity.ts'
 
-type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email' | 'password'> & {
+config()
+
+type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email' | 'password' | 'salt'> & {
   role: RoleType
   annualLeaveAllowance: number
   departmentId: number
+  jobRoleId: number
   managerId: number | null
 }
 
@@ -22,18 +29,36 @@ type SeedLeaveInput = Pick<
   reviewedById: number | null
 }
 
+async function dropAllTables(): Promise<void> {
+  const cleanupSource = new DataSource({
+    type: 'mysql',
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT ?? 3306),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    synchronize: false,
+  })
+
+  await cleanupSource.initialize()
+  await cleanupSource.query('SET FOREIGN_KEY_CHECKS = 0')
+  await cleanupSource.query('DROP TABLE IF EXISTS `leave_request`')
+  await cleanupSource.query('DROP TABLE IF EXISTS `user`')
+  await cleanupSource.query('DROP TABLE IF EXISTS `job_role`')
+  await cleanupSource.query('DROP TABLE IF EXISTS `role`')
+  await cleanupSource.query('DROP TABLE IF EXISTS `department`')
+  await cleanupSource.query('SET FOREIGN_KEY_CHECKS = 1')
+  await cleanupSource.destroy()
+}
+
 async function seed() {
+  await dropAllTables()
   await AppDataSource.initialize()
 
   const departmentRepo = AppDataSource.getRepository(Department)
+  const jobRoleRepo = AppDataSource.getRepository(JobRole)
   const userRepo = AppDataSource.getRepository(User)
   const leaveRepo = AppDataSource.getRepository(LeaveRequest)
-
-  await AppDataSource.query('SET FOREIGN_KEY_CHECKS = 0')
-  await leaveRepo.clear()
-  await userRepo.clear()
-  await departmentRepo.clear()
-  await AppDataSource.query('SET FOREIGN_KEY_CHECKS = 1')
 
   const [engineering, hr, finance, marketing] = await departmentRepo.save([
     departmentRepo.create({ name: 'Engineering' }),
@@ -42,7 +67,16 @@ async function seed() {
     departmentRepo.create({ name: 'Marketing' }),
   ])
 
-  const defaultPassword = 'Password123!'
+  const [contractor, seniorContractor, hrSpecialist, financeAnalyst, marketingExecutive] =
+    await jobRoleRepo.save([
+      jobRoleRepo.create({ name: 'Contractor' }),
+      jobRoleRepo.create({ name: 'Senior Contractor' }),
+      jobRoleRepo.create({ name: 'HR Specialist' }),
+      jobRoleRepo.create({ name: 'Finance Analyst' }),
+      jobRoleRepo.create({ name: 'Marketing Executive' }),
+    ])
+
+  const { hashedPassword: defaultPassword, salt: defaultSalt } = PasswordHandler.hashPassword('Password123!')
 
   const createUser = (data: SeedUserInput) =>
     userRepo.create({
@@ -50,9 +84,11 @@ async function seed() {
       lastName: data.surname,
       email: data.email,
       password: data.password,
+      salt: data.salt,
       role: data.role,
       annualLeaveAllowance: data.annualLeaveAllowance,
       departmentId: data.departmentId,
+      jobRoleId: data.jobRoleId,
       managerId: data.managerId,
     })
 
@@ -62,9 +98,11 @@ async function seed() {
       surname: 'Thompson',
       email: 'alice.thompson@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Admin,
-      annualLeaveAllowance: 28,
+      annualLeaveAllowance: 25,
       departmentId: hr.id,
+      jobRoleId: hrSpecialist.id,
       managerId: null,
     })
   )
@@ -75,9 +113,11 @@ async function seed() {
       surname: 'Mitchell',
       email: 'bob.mitchell@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Manager,
-      annualLeaveAllowance: 28,
+      annualLeaveAllowance: 25,
       departmentId: engineering.id,
+      jobRoleId: seniorContractor.id,
       managerId: null,
     }),
     createUser({
@@ -85,9 +125,11 @@ async function seed() {
       surname: 'Reyes',
       email: 'carol.reyes@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Manager,
-      annualLeaveAllowance: 28,
+      annualLeaveAllowance: 25,
       departmentId: finance.id,
+      jobRoleId: financeAnalyst.id,
       managerId: null,
     }),
   ])
@@ -98,9 +140,11 @@ async function seed() {
       surname: 'Okafor',
       email: 'david.okafor@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Employee,
-      annualLeaveAllowance: 28,
+      annualLeaveAllowance: 25,
       departmentId: engineering.id,
+      jobRoleId: contractor.id,
       managerId: engManager.id,
     }),
     createUser({
@@ -108,9 +152,11 @@ async function seed() {
       surname: 'Nakamura',
       email: 'eve.nakamura@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Employee,
-      annualLeaveAllowance: 28,
+      annualLeaveAllowance: 25,
       departmentId: engineering.id,
+      jobRoleId: contractor.id,
       managerId: engManager.id,
     }),
     createUser({
@@ -118,9 +164,11 @@ async function seed() {
       surname: 'Harrison',
       email: 'frank.harrison@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Employee,
-      annualLeaveAllowance: 28,
+      annualLeaveAllowance: 25,
       departmentId: finance.id,
+      jobRoleId: financeAnalyst.id,
       managerId: finManager.id,
     }),
     createUser({
@@ -128,9 +176,11 @@ async function seed() {
       surname: 'Osei',
       email: 'grace.osei@company.com',
       password: defaultPassword,
+      salt: defaultSalt,
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
       departmentId: marketing.id,
+      jobRoleId: marketingExecutive.id,
       managerId: null,
     }),
   ])
@@ -212,10 +262,13 @@ async function seed() {
 
   console.log('Seed complete.')
   console.log('\nDepartments: Engineering, Human Resources, Finance, Marketing')
+  console.log(
+    '\nJob Roles: Contractor, Senior Contractor, HR Specialist, Finance Analyst, Marketing Executive'
+  )
   console.log('\nAccounts (password: Password123!)')
-  console.log('Admin:     alice.thompson@company.com')
-  console.log('Managers:  bob.mitchell@company.com, carol.reyes@company.com')
-  console.log('Employees: david.okafor, eve.nakamura, frank.harrison, grace.osei @company.com')
+  console.log('Admin:     alice.thompson@company.com  (HR Specialist)')
+  console.log('Managers:  bob.mitchell@company.com (Senior Contractor), carol.reyes@company.com (Finance Analyst)')
+  console.log('Employees: david.okafor (Contractor), eve.nakamura (Contractor), frank.harrison (Finance Analyst), grace.osei (Marketing Executive) @company.com')
 
   await AppDataSource.destroy()
 }

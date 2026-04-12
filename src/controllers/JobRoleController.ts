@@ -2,32 +2,31 @@ import { validate } from 'class-validator'
 import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
-import { User } from '../entities/User.entity.ts'
+import { JobRole } from '../entities/JobRole.entity.ts'
 import { Logger } from '../helpers/Logger.ts'
-import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
 
-export class UserController {
-  constructor(private readonly userRepository: Repository<User>) {}
+export class JobRoleController {
+  constructor(private readonly jobRoleRepository: Repository<JobRole>) {}
 
   public getAll = async (_req: Request, res: Response): Promise<void> => {
     try {
-      const users = await this.userRepository.find()
+      const jobRoles = await this.jobRoleRepository.find()
 
-      if (users.length === 0) {
+      if (jobRoles.length === 0) {
         ResponseHandler.sendErrorResponse(res, StatusCodes.NO_CONTENT)
         return
       }
 
-      ResponseHandler.sendSuccessResponse(res, users)
+      ResponseHandler.sendSuccessResponse(res, jobRoles)
     } catch (error) {
-      Logger.error('Unexpected error in UserController.getAll', {
+      Logger.error('Unexpected error in JobRoleController.getAll', {
         error: error instanceof Error ? error.message : String(error),
       })
       ResponseHandler.sendErrorResponse(
         res,
         StatusCodes.INTERNAL_SERVER_ERROR,
-        'Failed to retrieve users'
+        'Failed to retrieve job roles'
       )
     }
   }
@@ -41,44 +40,42 @@ export class UserController {
     }
 
     try {
-      const user = await this.userRepository.findOne({ where: { id } })
+      const jobRole = await this.jobRoleRepository.findOne({ where: { id } })
 
-      if (!user) {
+      if (!jobRole) {
         ResponseHandler.sendErrorResponse(
           res,
           StatusCodes.NOT_FOUND,
-          `User not found with ID: ${id}`
+          `Job role not found with ID: ${id}`
         )
         return
       }
 
-      ResponseHandler.sendSuccessResponse(res, user)
+      ResponseHandler.sendSuccessResponse(res, jobRole)
     } catch (error) {
-      Logger.error('Unexpected error in UserController.getById', {
+      Logger.error('Unexpected error in JobRoleController.getById', {
         error: error instanceof Error ? error.message : String(error),
       })
       ResponseHandler.sendErrorResponse(
         res,
         StatusCodes.INTERNAL_SERVER_ERROR,
-        'Failed to retrieve user'
+        'Failed to retrieve job role'
       )
     }
   }
 
   public create = async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = new User()
-      Object.assign(user, req.body)
+      const jobRole = new JobRole()
+      jobRole.name = req.body.name
 
-      const errors = await validate(user)
+      const errors = await validate(jobRole)
       if (errors.length > 0) {
         throw new Error(errors.map((err) => Object.values(err.constraints || {})).join(', '))
       }
 
-      await this.userRepository.save(user)
-
-      const savedUser = await this.userRepository.findOneBy({ id: user.id })
-      ResponseHandler.sendSuccessResponse(res, savedUser, StatusCodes.CREATED)
+      const newJobRole = await this.jobRoleRepository.save(jobRole)
+      ResponseHandler.sendSuccessResponse(res, newJobRole, StatusCodes.CREATED)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Bad request'
       ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, message)
@@ -87,6 +84,7 @@ export class UserController {
 
   public update = async (req: Request, res: Response): Promise<void> => {
     const id = parseInt(req.params.id as string)
+    const name = req.body.name
 
     if (isNaN(id)) {
       ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'Invalid ID format')
@@ -94,30 +92,22 @@ export class UserController {
     }
 
     try {
-      const user = await this.userRepository.findOneBy({ id })
+      const jobRole = await this.jobRoleRepository.findOneBy({ id })
 
-      if (!user) {
-        ResponseHandler.sendErrorResponse(res, StatusCodes.NOT_FOUND, 'User not found')
+      if (!jobRole) {
+        ResponseHandler.sendErrorResponse(res, StatusCodes.NOT_FOUND, 'Job role not found')
         return
       }
 
-      Object.assign(user, req.body)
+      if (name !== undefined) jobRole.name = name
 
-      if (req.body.password) {
-        const { hashedPassword, salt } = PasswordHandler.hashPassword(req.body.password)
-        user.password = hashedPassword
-        user.salt = salt
-      }
-
-      const errors = await validate(user)
+      const errors = await validate(jobRole)
       if (errors.length > 0) {
         throw new Error(errors.map((err) => Object.values(err.constraints || {})).join(', '))
       }
 
-      await this.userRepository.save(user)
-
-      const updatedUser = await this.userRepository.findOneBy({ id })
-      ResponseHandler.sendSuccessResponse(res, updatedUser)
+      const updatedJobRole = await this.jobRoleRepository.save(jobRole)
+      ResponseHandler.sendSuccessResponse(res, updatedJobRole)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Bad request'
       ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, message)
@@ -125,25 +115,40 @@ export class UserController {
   }
 
   public delete = async (req: Request, res: Response): Promise<void> => {
-    const id = req.params.id as string
+    const id = req.params.id
+
+    if (!id) {
+      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'No ID provided')
+      return
+    }
 
     try {
-      if (!id) {
-        ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'No ID provided')
-        return
-      }
-
-      const result = await this.userRepository.delete(id)
+      const result = await this.jobRoleRepository.delete(id)
 
       if (result.affected === 0) {
-        ResponseHandler.sendErrorResponse(res, StatusCodes.NOT_FOUND, 'User not found')
+        ResponseHandler.sendErrorResponse(res, StatusCodes.NOT_FOUND, 'Job role not found')
         return
       }
 
-      ResponseHandler.sendSuccessResponse(res, 'User deleted')
+      ResponseHandler.sendSuccessResponse(res, 'Job role deleted')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Not found'
-      ResponseHandler.sendErrorResponse(res, StatusCodes.NOT_FOUND, message)
+      if (error instanceof Error && error.message.includes('foreign key constraint')) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.CONFLICT,
+          'Cannot delete job role: one or more users are assigned to it'
+        )
+        return
+      }
+
+      Logger.error('Unexpected error in JobRoleController.delete', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to delete job role'
+      )
     }
   }
 }

@@ -2,19 +2,25 @@ erDiagram
 
     DEPARTMENT {
         int id PK
-        string name UNIQUE
+        string name
+    }
+
+    JOB_ROLE {
+        int id PK
+        string name
     }
 
     USER {
         int id PK
         string firstName
         string lastName
-        string email UNIQUE
+        string email
         string password
-        enum role
-        int annualLeaveAllowance DEFAULT 28
+        enum role "Employee | Manager | Admin"
+        int annualLeaveAllowance
         int departmentId FK
-        int managerId FK NULL
+        int jobRoleId FK
+        int managerId FK_NULL
     }
 
     LEAVE_REQUEST {
@@ -22,16 +28,21 @@ erDiagram
         date startDate
         date endDate
         int daysRequested
-        enum status DEFAULT PENDING
+        enum leaveType "Vacation | Sick | Personal"
+        string reason NULL
+        enum status DEFAULT_PENDING
         datetime createdAt
+        string managerNote NULL
         int userId FK
-        int reviewedById FK NULL
+        int reviewedById FK_NULL
     }
 
-    DEPARTMENT ||--o{ USER : contains
+    DEPARTMENT ||--o{ USER : "employs"
 
-    USER ||--o{ USER : manages
+    JOB_ROLE ||--o{ USER : "assigned to"
 
-    USER ||--o{ LEAVE_REQUEST : submits
+    USER ||--o{ USER : "manages"
 
-    USER ||--o{ LEAVE_REQUEST : reviews
+    USER ||--o{ LEAVE_REQUEST : "submits"
+
+    USER ||--o{ LEAVE_REQUEST : "reviews"

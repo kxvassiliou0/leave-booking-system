@@ -1,3 +1,5 @@
+export * from './Department.class.ts'
+export * from './JobRole.class.ts'
 export * from './LeaveRequest.class.ts'
 export * from './Role.class.ts'
 export * from './User.class.ts'

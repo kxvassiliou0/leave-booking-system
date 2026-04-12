@@ -1,8 +1,9 @@
 import { IsNotEmpty, Matches, MaxLength } from 'class-validator'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { User } from './User.entity.ts'
 
-@Entity({ name: 'role' })
-export class Role {
+@Entity({ name: 'job_role' })
+export class JobRole {
   @PrimaryGeneratedColumn()
   id!: number
 
@@ -11,4 +12,7 @@ export class Role {
   @Matches(/\S/, { message: 'Name cannot be empty or whitespace' })
   @MaxLength(30, { message: 'Name must be 30 characters or less' })
   name!: string
+
+  @OneToMany(() => User, (user: User) => user.jobRole)
+  users!: User[]
 }

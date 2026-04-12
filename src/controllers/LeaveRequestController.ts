@@ -3,7 +3,7 @@ import { validate } from 'class-validator'
 import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
-import { In, Not } from 'typeorm'
+import { Between, In } from 'typeorm'
 import { LeaveRequest } from '../entities/LeaveRequest.entity.ts'
 import { User } from '../entities/User.entity.ts'
 import { Logger } from '../helpers/Logger.ts'
@@ -26,11 +26,30 @@ export class LeaveRequestController {
     return date.toISOString().split('T')[0]
   }
 
-  private async getUsedDays(userId: number): Promise<number> {
+  private getBusinessYear(referenceDate: Date = new Date()): {
+    start: Date
+    end: Date
+  } {
+    const year =
+      referenceDate.getMonth() >= 3 ?
+        referenceDate.getFullYear()
+      : referenceDate.getFullYear() - 1
+    return {
+      start: new Date(year, 3, 1),
+      end: new Date(year + 1, 2, 31),
+    }
+  }
+
+  private async getUsedDays(
+    userId: number,
+    referenceDate: Date = new Date()
+  ): Promise<number> {
+    const { start, end } = this.getBusinessYear(referenceDate)
     const approved = await this.leaveRepo.find({
       where: {
         userId,
-        status: Not(In([LeaveStatus.Rejected, LeaveStatus.Cancelled, LeaveStatus.Pending])),
+        status: LeaveStatus.Approved,
+        startDate: Between(start, end),
       },
     })
     return approved.reduce((total, lr) => total + lr.daysRequested, 0)
@@ -39,69 +58,112 @@ export class LeaveRequestController {
   private async validateEntity(entity: object): Promise<string | null> {
     const errors = await validate(entity)
     if (errors.length > 0) {
-      return errors.flatMap((e) => Object.values(e.constraints ?? {})).join(', ')
+      return errors.flatMap(e => Object.values(e.constraints ?? {})).join(', ')
     }
     return null
   }
 
+  private formatLeaveRequest(lr: LeaveRequest) {
+    return {
+      id: lr.id,
+      employee_id: lr.userId,
+      leave_type: lr.leaveType,
+      start_date: this.toDateString(new Date(lr.startDate)),
+      end_date: this.toDateString(new Date(lr.endDate)),
+      status: lr.status,
+      reason: lr.reason ?? null,
+      manager_note: lr.managerNote ?? null,
+    }
+  }
+
   createLeaveRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { startDate, endDate, leaveType, reason, userId } = req.body
+      const { employee_id, start_date, end_date, leave_type, reason } = req.body
 
-      if (!userId || isNaN(Number(userId))) {
-        ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'userId is required')
+      if (!employee_id || isNaN(Number(employee_id))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
         return
       }
 
-      if (!startDate || !endDate || !leaveType) {
-        res
-          .status(StatusCodes.BAD_REQUEST)
-          .json({ error: 'startDate, endDate, and leaveType are required' })
+      if (!start_date || !end_date) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'start_date and end_date are required'
+        )
         return
       }
 
-      if (!VALID_LEAVE_TYPES.includes(leaveType as LeaveType)) {
-        res.status(StatusCodes.BAD_REQUEST).json({
-          error: `Invalid leaveType. Must be one of: ${VALID_LEAVE_TYPES.join(', ')}`,
-        })
+      const start = new Date(start_date)
+      const end = new Date(end_date)
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid date format'
+        )
         return
       }
 
-      const user = await this.userRepo.findOne({ where: { id: userId } })
-      if (!user) {
-        res.status(StatusCodes.NOT_FOUND).json({ error: `Employee with ID ${userId} not found` })
-        return
-      }
-
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-
-      if (isNaN(start.getTime())) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid start date format' })
-        return
-      }
-      if (isNaN(end.getTime())) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid end date format' })
-        return
-      }
       if (end < start) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'End date cannot be before start date' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `End date of ${this.toDateString(end)} is before the start date of ${this.toDateString(start)}`
+        )
+        return
+      }
+
+      if (!leave_type) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'leave_type is required'
+        )
+        return
+      }
+      if (!VALID_LEAVE_TYPES.includes(leave_type as LeaveType)) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          `Invalid leave_type. Must be one of: ${VALID_LEAVE_TYPES.join(', ')}`
+        )
+        return
+      }
+      const resolvedLeaveType = leave_type as LeaveType
+
+      const user = await this.userRepo.findOne({
+        where: { id: Number(employee_id) },
+      })
+      if (!user) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
         return
       }
 
       const daysRequested = this.calculateDays(start, end)
-      const usedDays = await this.getUsedDays(userId)
+      const usedDays = await this.getUsedDays(Number(employee_id), start)
 
       if (usedDays + daysRequested > user.annualLeaveAllowance) {
-        res.status(StatusCodes.BAD_REQUEST).json({
-          error: `Insufficient leave balance. Available: ${user.annualLeaveAllowance - usedDays} days`,
-        })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Days requested exceed remaining balance'
+        )
         return
       }
 
       const overlap = await this.leaveRepo
         .createQueryBuilder('lr')
-        .where('lr.userId = :userId', { userId })
+        .where('lr.userId = :userId', { userId: Number(employee_id) })
         .andWhere('lr.status NOT IN (:...statuses)', {
           statuses: [LeaveStatus.Rejected, LeaveStatus.Cancelled],
         })
@@ -114,178 +176,251 @@ export class LeaveRequestController {
         .getOne()
 
       if (overlap) {
-        res
-          .status(StatusCodes.CONFLICT)
-          .json({ error: 'Leave request overlaps with an existing request' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.CONFLICT,
+          'Date range of request overlaps with existing request'
+        )
         return
       }
 
       const leaveRequest = this.leaveRepo.create({
-        userId,
+        userId: Number(employee_id),
         startDate: start,
         endDate: end,
         daysRequested,
-        leaveType: leaveType as LeaveType,
+        leaveType: resolvedLeaveType as LeaveType,
         reason: reason ?? null,
         status: LeaveStatus.Pending,
       })
 
       const validationError = await this.validateEntity(leaveRequest)
       if (validationError) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: validationError })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid request'
+        )
         return
       }
 
       const saved = await this.leaveRepo.save(leaveRequest)
-      Logger.info('Leave request created', { id: saved.id, userId })
-      res.status(StatusCodes.CREATED).json({ data: saved })
+      Logger.info('Leave request created', { id: saved.id, employee_id })
+      res.status(StatusCodes.CREATED).json({
+        message: 'Leave request has been submitted for review',
+        data: this.formatLeaveRequest(saved),
+      })
     } catch (err) {
       Logger.error('Unexpected error in createLeaveRequest', {
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
     }
   }
 
   deleteLeaveRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { leaveRequestId, userId: requestingUserId } = req.body
+      const { employee_id, leave_request_id, reason } = req.body
 
-      if (!leaveRequestId || isNaN(Number(leaveRequestId))) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid leave request ID' })
+      if (!employee_id || isNaN(Number(employee_id))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
+        return
+      }
+
+      if (!leave_request_id || isNaN(Number(leave_request_id))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
 
       const leaveRequest = await this.leaveRepo.findOne({
-        where: { id: Number(leaveRequestId) },
+        where: { id: Number(leave_request_id) },
       })
       if (!leaveRequest) {
-        res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ error: `Leave request with ID ${leaveRequestId} not found` })
-        return
-      }
-      if (leaveRequest.userId !== requestingUserId) {
-        res
-          .status(StatusCodes.FORBIDDEN)
-          .json({ error: 'You can only delete your own leave requests' })
-        return
-      }
-      if (leaveRequest.status !== LeaveStatus.Pending) {
-        res
-          .status(StatusCodes.BAD_REQUEST)
-          .json({ error: 'Only pending leave requests can be deleted' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
 
-      await this.leaveRepo.remove(leaveRequest)
-      Logger.info('Leave request deleted', {
-        leaveRequestId,
-        userId: requestingUserId,
-      })
-      res.status(StatusCodes.OK).json({ data: { message: 'Leave request deleted successfully' } })
+      if (leaveRequest.userId !== Number(employee_id)) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.FORBIDDEN,
+          'Unauthorised'
+        )
+        return
+      }
+
+      leaveRequest.status = LeaveStatus.Cancelled
+      if (reason) leaveRequest.managerNote = reason
+
+      const updated = await this.leaveRepo.save(leaveRequest)
+      Logger.info('Leave request cancelled', { leave_request_id, employee_id })
+
+      const responseData: Record<string, unknown> = {
+        message: 'Leave request has been cancelled',
+        data: this.formatLeaveRequest(updated),
+      }
+      if (reason) responseData.reason = reason
+
+      res.status(StatusCodes.OK).json(responseData)
     } catch (err) {
       Logger.error('Unexpected error in deleteLeaveRequest', {
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
     }
   }
 
   approveLeaveRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { leaveRequestId, managerNote, reviewerId } = req.body
+      const { leave_request_id, reason } = req.body
 
-      if (!leaveRequestId || isNaN(Number(leaveRequestId))) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid leave request ID' })
+      if (!leave_request_id || isNaN(Number(leave_request_id))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
 
       const leaveRequest = await this.leaveRepo.findOne({
-        where: { id: Number(leaveRequestId) },
+        where: { id: Number(leave_request_id) },
       })
       if (!leaveRequest) {
-        res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ error: `Leave request with ID ${leaveRequestId} not found` })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
       if (leaveRequest.status !== LeaveStatus.Pending) {
-        res
-          .status(StatusCodes.BAD_REQUEST)
-          .json({ error: 'Only pending leave requests can be approved' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
 
       leaveRequest.status = LeaveStatus.Approved
-      leaveRequest.reviewedById = reviewerId
-      leaveRequest.managerNote = managerNote ?? null
+      leaveRequest.managerNote = reason ?? null
 
-      const updated = await this.leaveRepo.save(leaveRequest)
-      Logger.info('Leave request approved', { leaveRequestId, reviewerId })
-      res.status(StatusCodes.OK).json({ data: updated })
+      await this.leaveRepo.save(leaveRequest)
+      Logger.info('Leave request approved', { leave_request_id })
+      res.status(StatusCodes.OK).json({
+        message: `Leave request ${leave_request_id} for employee_id ${leaveRequest.userId} has been approved`,
+        data: { reason: reason ?? null },
+      })
     } catch (err) {
       Logger.error('Unexpected error in approveLeaveRequest', {
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
     }
   }
 
   rejectLeaveRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { leaveRequestId, managerNote, reviewerId } = req.body
+      const { leave_request_id, reason } = req.body
 
-      if (!leaveRequestId || isNaN(Number(leaveRequestId))) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid leave request ID' })
+      if (!leave_request_id || isNaN(Number(leave_request_id))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
 
       const leaveRequest = await this.leaveRepo.findOne({
-        where: { id: Number(leaveRequestId) },
+        where: { id: Number(leave_request_id) },
       })
       if (!leaveRequest) {
-        res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ error: `Leave request with ID ${leaveRequestId} not found` })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
       if (leaveRequest.status !== LeaveStatus.Pending) {
-        res
-          .status(StatusCodes.BAD_REQUEST)
-          .json({ error: 'Only pending leave requests can be rejected' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid leave request ID'
+        )
         return
       }
 
       leaveRequest.status = LeaveStatus.Rejected
-      leaveRequest.reviewedById = reviewerId
-      leaveRequest.managerNote = managerNote ?? null
+      leaveRequest.managerNote = reason ?? null
 
-      const updated = await this.leaveRepo.save(leaveRequest)
-      Logger.info('Leave request rejected', { leaveRequestId, reviewerId })
-      res.status(StatusCodes.OK).json({ data: updated })
+      await this.leaveRepo.save(leaveRequest)
+      Logger.info('Leave request rejected', { leave_request_id })
+      res.status(StatusCodes.OK).json({
+        message: `Leave request ${leave_request_id} for employee_id ${leaveRequest.userId} has been rejected`,
+        data: { reason: reason ?? null },
+      })
     } catch (err) {
       Logger.error('Unexpected error in rejectLeaveRequest', {
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
     }
   }
 
-  getLeaveRequestsByEmployee = async (req: Request<{ employee_id: string }>, res: Response): Promise<void> => {
+  getLeaveRequestsByEmployee = async (
+    req: Request<{ employee_id: string }>,
+    res: Response
+  ): Promise<void> => {
     try {
       const employeeId = parseInt(req.params.employee_id, 10)
 
       if (isNaN(employeeId)) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid employee ID' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
         return
       }
 
       const user = await this.userRepo.findOne({ where: { id: employeeId } })
       if (!user) {
-        res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ error: `Employee with ID ${employeeId} not found` })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
         return
       }
 
@@ -294,47 +429,228 @@ export class LeaveRequestController {
         order: { createdAt: 'DESC' },
       })
 
-      res.status(StatusCodes.OK).json({ data: leaveRequests })
+      res.status(StatusCodes.OK).json({
+        message: `Status of leave requests for employee_id ${employeeId}`,
+        data: leaveRequests.map(lr => this.formatLeaveRequest(lr)),
+      })
     } catch (err) {
       Logger.error('Unexpected error in getLeaveRequestsByEmployee', {
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
     }
   }
 
-  getRemainingLeave = async (req: Request<{ employee_id: string }>, res: Response): Promise<void> => {
+  getRemainingLeave = async (
+    req: Request<{ employee_id: string }>,
+    res: Response
+  ): Promise<void> => {
     try {
       const employeeId = parseInt(req.params.employee_id, 10)
 
       if (isNaN(employeeId)) {
-        res.status(StatusCodes.BAD_REQUEST).json({ error: 'Invalid employee ID' })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
         return
       }
 
       const user = await this.userRepo.findOne({ where: { id: employeeId } })
       if (!user) {
-        res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ error: `Employee with ID ${employeeId} not found` })
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid employee ID'
+        )
         return
       }
 
       const usedDays = await this.getUsedDays(employeeId)
+      const { start, end } = this.getBusinessYear()
 
       res.status(StatusCodes.OK).json({
+        message: `Leave balance for employee_id ${employeeId}`,
         data: {
-          userId: employeeId,
-          annualLeaveAllowance: user.annualLeaveAllowance,
-          usedDays,
-          remainingDays: user.annualLeaveAllowance - usedDays,
+          annual_allowance: user.annualLeaveAllowance,
+          days_used: usedDays,
+          days_remaining: user.annualLeaveAllowance - usedDays,
+          business_year: `${this.toDateString(start)} to ${this.toDateString(end)}`,
         },
       })
     } catch (err) {
       Logger.error('Unexpected error in getRemainingLeave', {
-        error: String(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
+    }
+  }
+
+  getPendingRequestsByManager = async (
+    req: Request<{ manager_id: string }>,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const managerId = parseInt(req.params.manager_id, 10)
+
+      if (isNaN(managerId)) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid manager ID'
+        )
+        return
+      }
+
+      const manager = await this.userRepo.findOne({ where: { id: managerId } })
+      if (!manager) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid manager ID'
+        )
+        return
+      }
+
+      const team = await this.userRepo.find({ where: { managerId } })
+
+      if (team.length === 0) {
+        res.status(StatusCodes.OK).json({
+          message: `No team members assigned to manager_id ${managerId}`,
+          data: [],
+        })
+        return
+      }
+
+      const teamIds = team.map(u => u.id)
+      const pendingRequests = await this.leaveRepo.find({
+        where: { userId: In(teamIds), status: LeaveStatus.Pending },
+        order: { createdAt: 'ASC' },
+      })
+
+      res.status(StatusCodes.OK).json({
+        message: `Pending leave requests for manager_id ${managerId}'s team`,
+        data: pendingRequests.map(lr => this.formatLeaveRequest(lr)),
+      })
+    } catch (err) {
+      Logger.error('Unexpected error in getPendingRequestsByManager', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
+    }
+  }
+
+  getAllLeaveRequests = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { employee_id, manager_id } = req.query
+
+      if (employee_id !== undefined && manager_id !== undefined) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Provide either employee_id or manager_id, not both'
+        )
+        return
+      }
+
+      if (employee_id !== undefined) {
+        const id = parseInt(employee_id as string, 10)
+        if (isNaN(id)) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid employee_id'
+          )
+          return
+        }
+        const user = await this.userRepo.findOne({ where: { id } })
+        if (!user) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Employee not found'
+          )
+          return
+        }
+        const requests = await this.leaveRepo.find({
+          where: { userId: id },
+          order: { createdAt: 'DESC' },
+        })
+        res.status(StatusCodes.OK).json({
+          message: `Leave requests for employee_id ${id}`,
+          data: requests.map(lr => this.formatLeaveRequest(lr)),
+        })
+        return
+      }
+
+      if (manager_id !== undefined) {
+        const id = parseInt(manager_id as string, 10)
+        if (isNaN(id)) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid manager_id'
+          )
+          return
+        }
+        const manager = await this.userRepo.findOne({ where: { id } })
+        if (!manager) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Manager not found'
+          )
+          return
+        }
+        const team = await this.userRepo.find({ where: { managerId: id } })
+        if (team.length === 0) {
+          res.status(StatusCodes.OK).json({
+            message: `No team members assigned to manager_id ${id}`,
+            data: [],
+          })
+          return
+        }
+        const teamIds = team.map(u => u.id)
+        const requests = await this.leaveRepo.find({
+          where: { userId: In(teamIds) },
+          order: { createdAt: 'DESC' },
+        })
+        res.status(StatusCodes.OK).json({
+          message: `Leave requests for manager_id ${id}'s team`,
+          data: requests.map(lr => this.formatLeaveRequest(lr)),
+        })
+        return
+      }
+
+      const requests = await this.leaveRepo.find({
+        order: { createdAt: 'DESC' },
+      })
+      res.status(StatusCodes.OK).json({
+        message: 'All leave requests',
+        data: requests.map(lr => this.formatLeaveRequest(lr)),
+      })
+    } catch (err) {
+      Logger.error('Unexpected error in getAllLeaveRequests', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
     }
   }
 }

@@ -5,12 +5,16 @@ import { LeaveRequestController } from '../controllers/LeaveRequestController'
 import { StatusCodes } from 'http-status-codes'
 
 const mockLeaveController = {
+  getAllLeaveRequests: jest.fn((_req, res) => res.status(StatusCodes.OK).json([])),
   createLeaveRequest: jest.fn((req, res) => res.status(StatusCodes.CREATED).json(req.body)),
   deleteLeaveRequest: jest.fn((_req, res) =>
     res.status(StatusCodes.OK).json({ message: 'deleted' })
   ),
   approveLeaveRequest: jest.fn((req, res) => res.status(StatusCodes.OK).json(req.body)),
   rejectLeaveRequest: jest.fn((req, res) => res.status(StatusCodes.OK).json(req.body)),
+  getPendingRequestsByManager: jest.fn((req, res) =>
+    res.status(StatusCodes.OK).json({ managerId: req.params.manager_id })
+  ),
   getLeaveRequestsByEmployee: jest.fn((req, res) =>
     res.status(StatusCodes.OK).json({ employeeId: req.params.employee_id })
   ),
@@ -96,6 +100,24 @@ describe('LeaveRouter', () => {
     const reqArg = (mockLeaveController.getRemainingLeave as jest.Mock).mock.calls[0][0]
     expect(reqArg.params.employee_id).toBe(employeeId)
     expect(mockLeaveController.getRemainingLeave).toHaveBeenCalled()
+    expect(response.status).toBe(StatusCodes.OK)
+  })
+
+  it('GET /leave-requests calls getAllLeaveRequests', async () => {
+    const response = await request(app).get(BASE_URL)
+
+    expect(mockLeaveController.getAllLeaveRequests).toHaveBeenCalled()
+    expect(response.status).toBe(StatusCodes.OK)
+  })
+
+  it('GET /leave-requests/pending/manager/:manager_id calls getPendingRequestsByManager', async () => {
+    const managerId = '2'
+
+    const response = await request(app).get(`${BASE_URL}/pending/manager/${managerId}`)
+
+    const reqArg = (mockLeaveController.getPendingRequestsByManager as jest.Mock).mock.calls[0][0]
+    expect(reqArg.params.manager_id).toBe(managerId)
+    expect(mockLeaveController.getPendingRequestsByManager).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
   })
 })

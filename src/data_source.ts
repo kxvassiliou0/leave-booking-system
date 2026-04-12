@@ -1,4 +1,4 @@
-import { Department, LeaveRequest, Role, User } from '@entities'
+import { Department, JobRole, LeaveRequest, User } from '@entities'
 import { config } from 'dotenv'
 import { DataSource } from 'typeorm'
 
@@ -13,6 +13,6 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true,
   logging: process.env.NODE_ENV === 'development',
-  entities: [Department, LeaveRequest, Role, User],
+  entities: [Department, JobRole, LeaveRequest, User],
   migrations: ['src/migrations/*.ts'],
 })
