@@ -1,5 +1,7 @@
+import { RoleType } from '@enums'
 import { Router } from 'express'
 import { UserController } from '../controllers/UserController.ts'
+import { requireRole } from '../middleware/requireRole.ts'
 
 export class UserRouter {
   constructor(
@@ -14,10 +16,30 @@ export class UserRouter {
   }
 
   private addRoutes(): void {
-    this.router.get('/', this.userController.getAll)
-    this.router.get('/:id', this.userController.getById)
-    this.router.post('/', this.userController.create)
-    this.router.patch('/:id', this.userController.update)
-    this.router.delete('/:id', this.userController.delete)
+    this.router.get(
+      '/',
+      requireRole(RoleType.Admin),
+      this.userController.getAll
+    )
+    this.router.get(
+      '/:id',
+      requireRole(RoleType.Admin),
+      this.userController.getById
+    )
+    this.router.post(
+      '/',
+      requireRole(RoleType.Admin),
+      this.userController.create
+    )
+    this.router.patch(
+      '/:id',
+      requireRole(RoleType.Admin),
+      this.userController.update
+    )
+    this.router.delete(
+      '/:id',
+      requireRole(RoleType.Admin),
+      this.userController.delete
+    )
   }
 }

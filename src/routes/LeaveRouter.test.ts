@@ -31,6 +31,10 @@ jest.spyOn(router, 'delete')
 
 const app = express()
 app.use(express.json())
+app.use((req, _res, next) => {
+  ;(req as any).signedInUser = { token: { email: 'admin@test.com', role: 'Admin' } }
+  next()
+})
 
 const leaveRouter = new LeaveRouter(router, mockLeaveController)
 app.use('/leave-requests', leaveRouter.getRouter())

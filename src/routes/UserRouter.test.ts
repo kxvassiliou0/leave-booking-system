@@ -20,6 +20,10 @@ jest.spyOn(router, 'delete')
 
 const app = express()
 app.use(express.json())
+app.use((req, _res, next) => {
+  ;(req as any).signedInUser = { token: { email: 'admin@test.com', role: 'Admin' } }
+  next()
+})
 
 const userRouter = new UserRouter(router, mockUserController)
 app.use('/users', userRouter.getRouter())

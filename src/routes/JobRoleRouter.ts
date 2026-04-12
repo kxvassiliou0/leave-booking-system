@@ -1,5 +1,7 @@
+import { RoleType } from '@enums'
 import { Router } from 'express'
 import { JobRoleController } from '../controllers/JobRoleController.ts'
+import { requireRole } from '../middleware/requireRole.ts'
 
 export class JobRoleRouter {
   constructor(
@@ -14,10 +16,25 @@ export class JobRoleRouter {
   }
 
   private addRoutes(): void {
+    // All authenticated users can view job roles
     this.router.get('/', this.jobRoleController.getAll)
     this.router.get('/:id', this.jobRoleController.getById)
-    this.router.post('/', this.jobRoleController.create)
-    this.router.patch('/:id', this.jobRoleController.update)
-    this.router.delete('/:id', this.jobRoleController.delete)
+
+    // Only admins can create, update, or delete job roles
+    this.router.post(
+      '/',
+      requireRole(RoleType.Admin),
+      this.jobRoleController.create
+    )
+    this.router.patch(
+      '/:id',
+      requireRole(RoleType.Admin),
+      this.jobRoleController.update
+    )
+    this.router.delete(
+      '/:id',
+      requireRole(RoleType.Admin),
+      this.jobRoleController.delete
+    )
   }
 }
