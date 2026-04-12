@@ -5,14 +5,14 @@ import { DataSource } from 'typeorm'
 import { config } from 'dotenv'
 import { AppDataSource } from './data_source.ts'
 import { Department } from './entities/Department.entity.ts'
-import { PasswordHandler } from './helpers/PasswordHandler.ts'
 import { JobRole } from './entities/JobRole.entity.ts'
 import { LeaveRequest } from './entities/LeaveRequest.entity.ts'
 import { User } from './entities/User.entity.ts'
 
 config()
 
-type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email' | 'password' | 'salt'> & {
+type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email'> & {
+  password: string
   role: RoleType
   annualLeaveAllowance: number
   departmentId: number
@@ -76,15 +76,12 @@ async function seed() {
       jobRoleRepo.create({ name: 'Marketing Executive' }),
     ])
 
-  const { hashedPassword: defaultPassword, salt: defaultSalt } = PasswordHandler.hashPassword('Password123!')
-
   const createUser = (data: SeedUserInput) =>
     userRepo.create({
       firstName: data.firstname,
       lastName: data.surname,
       email: data.email,
       password: data.password,
-      salt: data.salt,
       role: data.role,
       annualLeaveAllowance: data.annualLeaveAllowance,
       departmentId: data.departmentId,
@@ -97,8 +94,7 @@ async function seed() {
       firstname: 'Alice',
       surname: 'Thompson',
       email: 'alice.thompson@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Admin,
       annualLeaveAllowance: 25,
       departmentId: hr.id,
@@ -112,8 +108,7 @@ async function seed() {
       firstname: 'Bob',
       surname: 'Mitchell',
       email: 'bob.mitchell@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Manager,
       annualLeaveAllowance: 25,
       departmentId: engineering.id,
@@ -124,8 +119,7 @@ async function seed() {
       firstname: 'Carol',
       surname: 'Reyes',
       email: 'carol.reyes@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Manager,
       annualLeaveAllowance: 25,
       departmentId: finance.id,
@@ -139,8 +133,7 @@ async function seed() {
       firstname: 'David',
       surname: 'Okafor',
       email: 'david.okafor@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
       departmentId: engineering.id,
@@ -151,8 +144,7 @@ async function seed() {
       firstname: 'Eve',
       surname: 'Nakamura',
       email: 'eve.nakamura@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
       departmentId: engineering.id,
@@ -163,8 +155,7 @@ async function seed() {
       firstname: 'Frank',
       surname: 'Harrison',
       email: 'frank.harrison@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
       departmentId: finance.id,
@@ -175,8 +166,7 @@ async function seed() {
       firstname: 'Grace',
       surname: 'Osei',
       email: 'grace.osei@company.com',
-      password: defaultPassword,
-      salt: defaultSalt,
+      password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
       departmentId: marketing.id,

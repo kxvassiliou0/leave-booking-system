@@ -125,6 +125,43 @@ classDiagram
         +toString() string
     }
 
+    %% --- JWT / Auth layer ---
+
+    class UserDTOToken {
+        +string email
+        +RoleType role
+    }
+
+    class LoginController {
+        -userRepository Repository~User~
+        +ERROR_USER_NOT_FOUND$ string
+        +ERROR_PASSWORD_INCORRECT$ string
+        +login(req, res) Promise~void~
+    }
+
+    class LoginRouter {
+        -router Router
+        -loginController LoginController
+        +getRouter() Router
+        -addRoutes() void
+    }
+
+    class Server {
+        -app Application
+        -port string|number
+        +ERROR_TOKEN_IS_INVALID$ string
+        +ERROR_TOKEN_NOT_FOUND$ string
+        +ERROR_TOKEN_SECRET_NOT_DEFINED$ string
+        +start() Promise~void~
+        -initialiseRoutes() void
+        -authenticateToken(req, res, next) void
+    }
+
+    class requireRole {
+        <<function>>
+        +requireRole(...roles RoleType[]) Middleware
+    }
+
     Department ..|> DepartmentInterface : implements
     JobRole ..|> JobRoleInterface : implements
     Role ..|> RoleInterface : implements
@@ -138,3 +175,11 @@ classDiagram
     Role ..> RoleType : uses
     LeaveRequest ..> LeaveType : uses
     LeaveRequest ..> LeaveStatus : uses
+
+    Server --> LoginRouter : routes /api/login
+    LoginRouter --> LoginController
+    LoginController --> UserDTOToken : builds payload
+    LoginController ..> User : queries (with password+salt)
+    UserDTOToken ..> RoleType : uses
+    Server ..> requireRole : uses in routes
+    requireRole ..> RoleType : checks
