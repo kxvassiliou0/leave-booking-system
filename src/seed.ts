@@ -1,10 +1,10 @@
+import { LeaveStatus, LeaveType, RoleType } from '@enums'
+import type { LeaveRequest as LeaveRequestContract, User as UserContract } from '@interfaces'
 import 'reflect-metadata'
 import { AppDataSource } from './data_source.ts'
 import { Department } from './entities/Department.entity.ts'
-import { User } from './entities/User.entity.ts'
 import { LeaveRequest } from './entities/LeaveRequest.entity.ts'
-import { RoleType, LeaveType, LeaveStatus } from '@enums'
-import type { User as UserContract, LeaveRequest as LeaveRequestContract } from '@interfaces'
+import { User } from './entities/User.entity.ts'
 
 type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email' | 'password'> & {
   role: RoleType
@@ -213,9 +213,9 @@ async function seed() {
   console.log('Seed complete.')
   console.log('\nDepartments: Engineering, Human Resources, Finance, Marketing')
   console.log('\nAccounts (password: Password123!)')
-  console.log('  Admin:     alice.thompson@company.com')
-  console.log('  Managers:  bob.mitchell@company.com, carol.reyes@company.com')
-  console.log('  Employees: david.okafor, eve.nakamura, frank.harrison, grace.osei @company.com')
+  console.log('Admin:     alice.thompson@company.com')
+  console.log('Managers:  bob.mitchell@company.com, carol.reyes@company.com')
+  console.log('Employees: david.okafor, eve.nakamura, frank.harrison, grace.osei @company.com')
 
   await AppDataSource.destroy()
 }

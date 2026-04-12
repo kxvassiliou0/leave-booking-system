@@ -272,7 +272,7 @@ export class LeaveRequestController {
     }
   }
 
-  getLeaveRequestsByEmployee = async (req: Request, res: Response): Promise<void> => {
+  getLeaveRequestsByEmployee = async (req: Request<{ employee_id: string }>, res: Response): Promise<void> => {
     try {
       const employeeId = parseInt(req.params.employee_id, 10)
 
@@ -303,7 +303,7 @@ export class LeaveRequestController {
     }
   }
 
-  getRemainingLeave = async (req: Request, res: Response): Promise<void> => {
+  getRemainingLeave = async (req: Request<{ employee_id: string }>, res: Response): Promise<void> => {
     try {
       const employeeId = parseInt(req.params.employee_id, 10)
 

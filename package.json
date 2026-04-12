@@ -9,10 +9,6 @@
     "seed": "cross-env NODE_ENV=development ts-node -r tsconfig-paths/register src/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "migration:run": "npm run typeorm -- -d src/data_source.ts migration:run",
-    "migration:revert": "npm run typeorm -- -d src/data_source.ts migration:revert",
-    "migration:generate": "npm run typeorm -- -d src/data_source.ts migration:generate",
-    "typeorm": "typeorm-ts-node-commonjs -r tsconfig-paths/register",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit"
@@ -28,6 +24,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/morgan": "^1.9.10",
     "@types/node": "^25.5.0",
     "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
@@ -40,11 +37,13 @@
     "express": "^5.2.1",
     "http-status-codes": "^2.3.0",
     "jest-mock-extended": "^4.0.0",
+    "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "supertest": "^7.2.2",
     "test": "^3.3.0",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   }
 }
