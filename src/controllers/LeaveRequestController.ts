@@ -63,6 +63,25 @@ export class LeaveRequestController {
     return null
   }
 
+  private async canAccessEmployee(
+    req: Request,
+    employeeId: number
+  ): Promise<boolean> {
+    const signedInUser = (req as any).signedInUser?.token
+    if (!signedInUser) return false
+
+    if (signedInUser.role === RoleType.Admin) return true
+
+    if (signedInUser.role === RoleType.Employee)
+      return signedInUser.id === employeeId
+
+    if (signedInUser.id === employeeId) return true
+    const report = await this.userRepo.findOne({
+      where: { id: employeeId, managerId: signedInUser.id },
+    })
+    return report !== null
+  }
+
   private formatLeaveRequest(lr: LeaveRequest) {
     return {
       id: lr.id,
@@ -327,6 +346,21 @@ export class LeaveRequestController {
         return
       }
 
+      const approver = (req as any).signedInUser?.token
+      if (approver?.role === RoleType.Manager) {
+        const employee = await this.userRepo.findOne({
+          where: { id: leaveRequest.userId },
+        })
+        if (!employee || employee.managerId !== approver.id) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.FORBIDDEN,
+            'You can only approve leave requests for your direct reports'
+          )
+          return
+        }
+      }
+
       leaveRequest.status = LeaveStatus.Approved
       leaveRequest.managerNote = reason ?? null
 
@@ -381,6 +415,21 @@ export class LeaveRequestController {
         return
       }
 
+      const rejecter = (req as any).signedInUser?.token
+      if (rejecter?.role === RoleType.Manager) {
+        const employee = await this.userRepo.findOne({
+          where: { id: leaveRequest.userId },
+        })
+        if (!employee || employee.managerId !== rejecter.id) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.FORBIDDEN,
+            'You can only reject leave requests for your direct reports'
+          )
+          return
+        }
+      }
+
       leaveRequest.status = LeaveStatus.Rejected
       leaveRequest.managerNote = reason ?? null
 
@@ -414,6 +463,15 @@ export class LeaveRequestController {
           res,
           StatusCodes.BAD_REQUEST,
           'Invalid employee ID'
+        )
+        return
+      }
+
+      if (!(await this.canAccessEmployee(req, employeeId))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.FORBIDDEN,
+          'You are not authorised to view leave requests for this employee'
         )
         return
       }
@@ -465,6 +523,15 @@ export class LeaveRequestController {
         return
       }
 
+      if (!(await this.canAccessEmployee(req, employeeId))) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.FORBIDDEN,
+          'You are not authorised to view leave balance for this employee'
+        )
+        return
+      }
+
       const user = await this.userRepo.findOne({ where: { id: employeeId } })
       if (!user) {
         ResponseHandler.sendErrorResponse(
@@ -504,7 +571,10 @@ export class LeaveRequestController {
     res: Response
   ): Promise<void> => {
     try {
-      const managerId = parseInt(req.params.manager_id, 10)
+      const signedInUser = (req as any).signedInUser?.token
+      const isAdmin = signedInUser?.role === RoleType.Admin
+      const managerId =
+        isAdmin ? parseInt(req.params.manager_id, 10) : signedInUser?.id
 
       if (isNaN(managerId)) {
         ResponseHandler.sendErrorResponse(
@@ -559,7 +629,31 @@ export class LeaveRequestController {
 
   getAllLeaveRequests = async (req: Request, res: Response): Promise<void> => {
     try {
+      const signedInUser = (req as any).signedInUser?.token
+      const isAdmin = signedInUser?.role === RoleType.Admin
       const { employee_id, manager_id } = req.query
+
+      if (!isAdmin) {
+        const managerId: number = signedInUser?.id
+        const team = await this.userRepo.find({ where: { managerId } })
+        if (team.length === 0) {
+          res.status(StatusCodes.OK).json({
+            message: `No team members assigned to your account`,
+            data: [],
+          })
+          return
+        }
+        const teamIds = team.map(u => u.id)
+        const requests = await this.leaveRepo.find({
+          where: { userId: In(teamIds) },
+          order: { createdAt: 'DESC' },
+        })
+        res.status(StatusCodes.OK).json({
+          message: `Leave requests for your team`,
+          data: requests.map(lr => this.formatLeaveRequest(lr)),
+        })
+        return
+      }
 
       if (employee_id !== undefined && manager_id !== undefined) {
         ResponseHandler.sendErrorResponse(

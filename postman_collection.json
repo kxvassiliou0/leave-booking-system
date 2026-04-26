@@ -207,7 +207,7 @@
             "url": "{{baseUrl}}/leave-requests",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"employee_id\": 5,\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2026-09-05\"\n}"
+              "raw": "{\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2026-09-05\"\n}"
             }
           }
         },
