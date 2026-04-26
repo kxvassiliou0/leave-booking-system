@@ -1,8 +1,8 @@
 import express, {
   type NextFunction,
-  type Request,
   type Response,
 } from 'express'
+import type { AuthenticatedJWTRequest as Request } from './interfaces/AuthenticatedJWTRequest.interface.ts'
 import { StatusCodes } from 'http-status-codes'
 import jwt from 'jsonwebtoken'
 import morgan, { type StreamOptions } from 'morgan'
@@ -111,7 +111,7 @@ export class Server {
           return
         }
 
-        ;(req as any).signedInUser = payload
+        req.signedInUser = payload as Request['signedInUser']
         next()
       })
     } else {

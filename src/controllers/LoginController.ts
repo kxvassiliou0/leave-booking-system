@@ -45,11 +45,11 @@ export class LoginController {
       res.status(StatusCodes.ACCEPTED).send(
         jwt.sign({ token }, process.env.JWT_SECRET_KEY as string, { expiresIn: '3h' })
       )
-    } catch (error: any) {
+    } catch (error) {
       ResponseHandler.sendErrorResponse(
         res,
         StatusCodes.BAD_REQUEST,
-        error.message
+        error instanceof Error ? error.message : 'Unknown error'
       )
     }
   }

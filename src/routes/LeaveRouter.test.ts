@@ -1,5 +1,7 @@
 import request from 'supertest'
 import express, { Router } from 'express'
+import type { AuthenticatedJWTRequest } from '../interfaces/AuthenticatedJWTRequest.interface'
+import { RoleType } from '../enums/index'
 import { LeaveRouter } from './LeaveRouter'
 import { LeaveRequestController } from '../controllers/LeaveRequestController'
 import { StatusCodes } from 'http-status-codes'
@@ -32,7 +34,7 @@ jest.spyOn(router, 'delete')
 const app = express()
 app.use(express.json())
 app.use((req, _res, next) => {
-  ;(req as any).signedInUser = { token: { email: 'admin@test.com', role: 'Admin' } }
+  ;(req as AuthenticatedJWTRequest).signedInUser = { token: { email: 'admin@test.com', role: RoleType.Admin } }
   next()
 })
 

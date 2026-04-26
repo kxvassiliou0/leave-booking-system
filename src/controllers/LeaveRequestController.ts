@@ -1,6 +1,6 @@
 import { LeaveStatus, LeaveType, RoleType } from '@enums'
 import { validate } from 'class-validator'
-import type { Request, Response } from 'express'
+import type { Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
 import { Between, In } from 'typeorm'
@@ -8,6 +8,7 @@ import { LeaveRequest } from '../entities/LeaveRequest.entity.ts'
 import { User } from '../entities/User.entity.ts'
 import { Logger } from '../helpers/Logger.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
+import type { AuthenticatedJWTRequest as Request } from '../interfaces/AuthenticatedJWTRequest.interface.ts'
 
 const VALID_LEAVE_TYPES = Object.values(LeaveType)
 
@@ -67,7 +68,7 @@ export class LeaveRequestController {
     req: Request,
     employeeId: number
   ): Promise<boolean> {
-    const signedInUser = (req as any).signedInUser?.token
+    const signedInUser = req.signedInUser?.token
     if (!signedInUser) return false
 
     if (signedInUser.role === RoleType.Admin) return true
@@ -97,7 +98,7 @@ export class LeaveRequestController {
 
   createLeaveRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-      const signedInUser = (req as any).signedInUser?.token
+      const signedInUser = req.signedInUser?.token
       const isAdmin = signedInUser?.role === RoleType.Admin
 
       const employee_id = isAdmin ? req.body.employee_id : signedInUser?.id
@@ -346,7 +347,7 @@ export class LeaveRequestController {
         return
       }
 
-      const approver = (req as any).signedInUser?.token
+      const approver = req.signedInUser?.token
       if (approver?.role === RoleType.Manager) {
         const employee = await this.userRepo.findOne({
           where: { id: leaveRequest.userId },
@@ -415,7 +416,7 @@ export class LeaveRequestController {
         return
       }
 
-      const rejecter = (req as any).signedInUser?.token
+      const rejecter = req.signedInUser?.token
       if (rejecter?.role === RoleType.Manager) {
         const employee = await this.userRepo.findOne({
           where: { id: leaveRequest.userId },
@@ -452,7 +453,7 @@ export class LeaveRequestController {
   }
 
   getLeaveRequestsByEmployee = async (
-    req: Request<{ employee_id: string }>,
+    req: Request & { params: { employee_id: string } },
     res: Response
   ): Promise<void> => {
     try {
@@ -508,7 +509,7 @@ export class LeaveRequestController {
   }
 
   getRemainingLeave = async (
-    req: Request<{ employee_id: string }>,
+    req: Request & { params: { employee_id: string } },
     res: Response
   ): Promise<void> => {
     try {
@@ -567,16 +568,16 @@ export class LeaveRequestController {
   }
 
   getPendingRequestsByManager = async (
-    req: Request<{ manager_id: string }>,
+    req: Request & { params: { manager_id: string } },
     res: Response
   ): Promise<void> => {
     try {
-      const signedInUser = (req as any).signedInUser?.token
+      const signedInUser = req.signedInUser?.token
       const isAdmin = signedInUser?.role === RoleType.Admin
       const managerId =
         isAdmin ? parseInt(req.params.manager_id, 10) : signedInUser?.id
 
-      if (isNaN(managerId)) {
+      if (managerId === undefined || isNaN(managerId)) {
         ResponseHandler.sendErrorResponse(
           res,
           StatusCodes.BAD_REQUEST,
@@ -629,12 +630,12 @@ export class LeaveRequestController {
 
   getAllLeaveRequests = async (req: Request, res: Response): Promise<void> => {
     try {
-      const signedInUser = (req as any).signedInUser?.token
+      const signedInUser = req.signedInUser?.token
       const isAdmin = signedInUser?.role === RoleType.Admin
       const { employee_id, manager_id } = req.query
 
       if (!isAdmin) {
-        const managerId: number = signedInUser?.id
+        const managerId = signedInUser?.id
         const team = await this.userRepo.find({ where: { managerId } })
         if (team.length === 0) {
           res.status(StatusCodes.OK).json({

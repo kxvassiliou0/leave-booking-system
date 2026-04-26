@@ -1,11 +1,12 @@
 import { RoleType } from '@enums'
-import type { NextFunction, Request, Response } from 'express'
+import type { NextFunction, Response } from 'express'
+import type { AuthenticatedJWTRequest as Request } from '../interfaces/AuthenticatedJWTRequest.interface.ts'
 import { StatusCodes } from 'http-status-codes'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
 
 export function requireRole(...roles: RoleType[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const signedInUser = (req as any).signedInUser
+    const signedInUser = req.signedInUser
 
     if (!signedInUser?.token?.role) {
       ResponseHandler.sendErrorResponse(
