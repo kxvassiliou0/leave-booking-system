@@ -165,7 +165,7 @@ describe('UserController', () => {
 
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
-        StatusCodes.BAD_REQUEST,
+        StatusCodes.UNPROCESSABLE_ENTITY,
         expect.stringContaining('Password must be at least 10 characters long')
       )
     })

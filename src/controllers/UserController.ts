@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
 import { User } from '../entities/User.entity.ts'
+import { AppError } from '../helpers/AppError.ts'
 import { Logger } from '../helpers/Logger.ts'
 import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
@@ -72,7 +73,10 @@ export class UserController {
 
       const errors = await validate(user)
       if (errors.length > 0) {
-        throw new Error(errors.map((err) => Object.values(err.constraints || {})).join(', '))
+        throw new AppError(
+          errors.map((err) => Object.values(err.constraints || {})).join(', '),
+          StatusCodes.UNPROCESSABLE_ENTITY
+        )
       }
 
       await this.userRepository.save(user)
@@ -80,8 +84,9 @@ export class UserController {
       const savedUser = await this.userRepository.findOneBy({ id: user.id })
       ResponseHandler.sendSuccessResponse(res, savedUser, StatusCodes.CREATED)
     } catch (error) {
+      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       const message = error instanceof Error ? error.message : 'Bad request'
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, message)
+      ResponseHandler.sendErrorResponse(res, statusCode, message)
     }
   }
 
@@ -111,7 +116,10 @@ export class UserController {
 
       const errors = await validate(user)
       if (errors.length > 0) {
-        throw new Error(errors.map((err) => Object.values(err.constraints || {})).join(', '))
+        throw new AppError(
+          errors.map((err) => Object.values(err.constraints || {})).join(', '),
+          StatusCodes.UNPROCESSABLE_ENTITY
+        )
       }
 
       await this.userRepository.save(user)
@@ -119,8 +127,9 @@ export class UserController {
       const updatedUser = await this.userRepository.findOneBy({ id })
       ResponseHandler.sendSuccessResponse(res, updatedUser)
     } catch (error) {
+      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       const message = error instanceof Error ? error.message : 'Bad request'
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, message)
+      ResponseHandler.sendErrorResponse(res, statusCode, message)
     }
   }
 

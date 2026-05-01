@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
 import { JobRole } from '../entities/JobRole.entity.ts'
+import { AppError } from '../helpers/AppError.ts'
 import { Logger } from '../helpers/Logger.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
 import type { IEntityController } from '../types/IEntityController.ts'
@@ -72,14 +73,18 @@ export class JobRoleController implements IEntityController {
 
       const errors = await validate(jobRole)
       if (errors.length > 0) {
-        throw new Error(errors.map((err) => Object.values(err.constraints || {})).join(', '))
+        throw new AppError(
+          errors.map((err) => Object.values(err.constraints || {})).join(', '),
+          StatusCodes.UNPROCESSABLE_ENTITY
+        )
       }
 
       const newJobRole = await this.jobRoleRepository.save(jobRole)
       ResponseHandler.sendSuccessResponse(res, newJobRole, StatusCodes.CREATED)
     } catch (error) {
+      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       const message = error instanceof Error ? error.message : 'Bad request'
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, message)
+      ResponseHandler.sendErrorResponse(res, statusCode, message)
     }
   }
 
@@ -104,14 +109,18 @@ export class JobRoleController implements IEntityController {
 
       const errors = await validate(jobRole)
       if (errors.length > 0) {
-        throw new Error(errors.map((err) => Object.values(err.constraints || {})).join(', '))
+        throw new AppError(
+          errors.map((err) => Object.values(err.constraints || {})).join(', '),
+          StatusCodes.UNPROCESSABLE_ENTITY
+        )
       }
 
       const updatedJobRole = await this.jobRoleRepository.save(jobRole)
       ResponseHandler.sendSuccessResponse(res, updatedJobRole)
     } catch (error) {
+      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       const message = error instanceof Error ? error.message : 'Bad request'
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, message)
+      ResponseHandler.sendErrorResponse(res, statusCode, message)
     }
   }
 

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import type { Repository } from 'typeorm'
 import { UserDTOToken } from '../dto/UserDTOToken.ts'
 import { User } from '../entities/User.entity.ts'
+import { AppError } from '../helpers/AppError.ts'
 import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
 import type { ILoginController } from '../types/ILoginController.ts'
@@ -34,11 +35,11 @@ export class LoginController implements ILoginController {
         .getOne()
 
       if (!user) {
-        throw new Error(LoginController.ERROR_USER_NOT_FOUND)
+        throw new AppError(LoginController.ERROR_USER_NOT_FOUND, StatusCodes.UNAUTHORIZED)
       }
 
       if (!PasswordHandler.verifyPassword(password, user.password, user.salt)) {
-        throw new Error(LoginController.ERROR_PASSWORD_INCORRECT)
+        throw new AppError(LoginController.ERROR_PASSWORD_INCORRECT, StatusCodes.UNAUTHORIZED)
       }
 
       const token = new UserDTOToken(user.id, user.email, user.role)
@@ -47,9 +48,10 @@ export class LoginController implements ILoginController {
         jwt.sign({ token }, process.env.JWT_SECRET_KEY as string, { expiresIn: '3h' })
       )
     } catch (error) {
+      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       ResponseHandler.sendErrorResponse(
         res,
-        StatusCodes.BAD_REQUEST,
+        statusCode,
         error instanceof Error ? error.message : 'Unknown error'
       )
     }

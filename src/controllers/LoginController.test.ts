@@ -77,7 +77,7 @@ describe('LoginController', () => {
       )
     })
 
-    it('returns BAD_REQUEST when user is not found', async () => {
+    it('returns UNAUTHORIZED when user is not found', async () => {
       qb.getOne.mockResolvedValue(null)
       const req = mockRequest({ email: 'nobody@company.com', password: 'pass' })
       const res = mockResponse()
@@ -86,12 +86,12 @@ describe('LoginController', () => {
 
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
-        StatusCodes.BAD_REQUEST,
+        StatusCodes.UNAUTHORIZED,
         LoginController.ERROR_USER_NOT_FOUND
       )
     })
 
-    it('returns BAD_REQUEST when password is incorrect', async () => {
+    it('returns UNAUTHORIZED when password is incorrect', async () => {
       qb.getOne.mockResolvedValue(makeUser())
       jest.spyOn(PasswordHandler, 'verifyPassword').mockReturnValue(false)
       const req = mockRequest({ email: 'alice@company.com', password: 'wrong' })
@@ -101,7 +101,7 @@ describe('LoginController', () => {
 
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
-        StatusCodes.BAD_REQUEST,
+        StatusCodes.UNAUTHORIZED,
         LoginController.ERROR_PASSWORD_INCORRECT
       )
     })

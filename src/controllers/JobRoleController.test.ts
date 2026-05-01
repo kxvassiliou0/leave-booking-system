@@ -155,7 +155,7 @@ describe('JobRoleController', () => {
 
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
-        StatusCodes.BAD_REQUEST,
+        StatusCodes.UNPROCESSABLE_ENTITY,
         expect.stringContaining('name should not be empty')
       )
     })
