@@ -1,12 +1,19 @@
 import { RoleType } from '@enums'
 import { Router } from 'express'
-import { JobRoleController } from '../controllers/JobRoleController.ts'
+import { MiddlewareFactory } from '../helpers/MiddlewareFactory.ts'
 import { requireRole } from '../middleware/requireRole.ts'
+import type { IEntityController } from '../types/IEntityController.ts'
+import type { IRouter } from '../types/IRouter.ts'
 
-export class JobRoleRouter {
+export class JobRoleRouter implements IRouter {
+  public readonly authenticate = true
+  public readonly routeName = 'job-roles'
+  public readonly limiter = MiddlewareFactory.jwtRateLimiter
+  public readonly basePath = '/api/job-roles'
+
   constructor(
     private readonly router: Router,
-    private readonly jobRoleController: JobRoleController
+    private readonly jobRoleController: IEntityController
   ) {
     this.addRoutes()
   }
@@ -16,11 +23,9 @@ export class JobRoleRouter {
   }
 
   private addRoutes(): void {
-    // All authenticated users can view job roles
     this.router.get('/', this.jobRoleController.getAll)
     this.router.get('/:id', this.jobRoleController.getById)
 
-    // Only admins can create, update, or delete job roles
     this.router.post(
       '/',
       requireRole(RoleType.Admin),

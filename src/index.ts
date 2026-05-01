@@ -11,39 +11,32 @@ import { LeaveRouter } from './routes/LeaveRouter.ts'
 import { LoginRouter } from './routes/LoginRouter.ts'
 import { UserRouter } from './routes/UserRouter.ts'
 import { Server } from './Server.ts'
+import type { IRouter } from './types/IRouter.ts'
 
 const DEFAULT_PORT = 3000
 const port = process.env.PORT ?? DEFAULT_PORT
 
-const loginRouter = new LoginRouter(
-  Router(),
-  new LoginController(AppDataSource.getRepository(User))
-)
+const routers: Array<IRouter> = [
+  new LoginRouter(
+    Router(),
+    new LoginController(AppDataSource.getRepository(User))
+  ),
+  new JobRoleRouter(
+    Router(),
+    new JobRoleController(AppDataSource.getRepository(JobRole))
+  ),
+  new UserRouter(
+    Router(),
+    new UserController(AppDataSource.getRepository(User))
+  ),
+  new LeaveRouter(
+    Router(),
+    new LeaveRequestController(
+      AppDataSource.getRepository(User),
+      AppDataSource.getRepository(LeaveRequest)
+    )
+  ),
+]
 
-const jobRoleRouter = new JobRoleRouter(
-  Router(),
-  new JobRoleController(AppDataSource.getRepository(JobRole))
-)
-
-const userRouter = new UserRouter(
-  Router(),
-  new UserController(AppDataSource.getRepository(User))
-)
-
-const leaveRouter = new LeaveRouter(
-  Router(),
-  new LeaveRequestController(
-    AppDataSource.getRepository(User),
-    AppDataSource.getRepository(LeaveRequest)
-  )
-)
-
-const server = new Server(
-  port,
-  loginRouter,
-  jobRoleRouter,
-  userRouter,
-  leaveRouter,
-  AppDataSource
-)
+const server = new Server(port, routers, AppDataSource)
 server.start()

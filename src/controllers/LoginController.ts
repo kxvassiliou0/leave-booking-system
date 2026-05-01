@@ -6,8 +6,9 @@ import { UserDTOToken } from '../dto/UserDTOToken.ts'
 import { User } from '../entities/User.entity.ts'
 import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
+import type { ILoginController } from '../types/ILoginController.ts'
 
-export class LoginController {
+export class LoginController implements ILoginController {
   public static readonly ERROR_USER_NOT_FOUND = 'User not found'
   public static readonly ERROR_PASSWORD_INCORRECT = 'Incorrect password'
 

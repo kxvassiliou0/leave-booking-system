@@ -1,41 +1,40 @@
 import express, {
   type NextFunction,
+  type Request,
   type Response,
 } from 'express'
-import type { AuthenticatedJWTRequest as Request } from './interfaces/AuthenticatedJWTRequest.interface.ts'
+import helmet from 'helmet'
 import { StatusCodes } from 'http-status-codes'
-import jwt from 'jsonwebtoken'
 import morgan, { type StreamOptions } from 'morgan'
 import { type DataSource } from 'typeorm'
+import { ErrorHandler } from './ErrorHandler.ts'
+import { AppError } from './helpers/AppError.ts'
+import { AUTH_ERRORS } from './helpers/AuthErrors.ts'
 import { Logger } from './helpers/Logger.ts'
+import { MiddlewareFactory } from './helpers/MiddlewareFactory.ts'
 import { ResponseHandler } from './helpers/ResponseHandler.ts'
-import { type JobRoleRouter } from './routes/JobRoleRouter.ts'
-import { type LeaveRouter } from './routes/LeaveRouter.ts'
-import { type LoginRouter } from './routes/LoginRouter.ts'
-import { type UserRouter } from './routes/UserRouter.ts'
+import type { IRouter } from './types/IRouter.ts'
 
 export class Server {
-  public static readonly ERROR_TOKEN_IS_INVALID =
-    'Not authorised - Token is invalid'
-  public static readonly ERROR_TOKEN_NOT_FOUND =
-    'Not authorised - Token not found'
+  public static readonly ERROR_TOKEN_IS_INVALID = AUTH_ERRORS.TOKEN_IS_INVALID
+  public static readonly ERROR_TOKEN_NOT_FOUND = AUTH_ERRORS.TOKEN_NOT_FOUND
   public static readonly ERROR_TOKEN_SECRET_NOT_DEFINED =
-    'JWT_SECRET_KEY is not defined'
+    AUTH_ERRORS.TOKEN_SECRET_NOT_DEFINED
 
   private readonly app: express.Application
 
   constructor(
     private readonly port: string | number,
-    private readonly loginRouter: LoginRouter,
-    private readonly jobRoleRouter: JobRoleRouter,
-    private readonly userRouter: UserRouter,
-    private readonly leaveRouter: LeaveRouter,
+    private readonly routers: IRouter[],
     private readonly appDataSource: DataSource
   ) {
     this.app = express()
+    this.app.use(helmet())
+    this.app.disable('x-powered-by')
 
     this.initialiseMiddlewares()
     this.initialiseRoutes()
+    this.initialise404Handler()
     this.initialiseErrorHandling()
   }
 
@@ -45,31 +44,25 @@ export class Server {
         Logger.info(message.trim())
       },
     }
-
     this.app.use(express.json())
     this.app.use(morgan('combined', { stream: morganStream }))
   }
 
   private initialiseRoutes(): void {
-    this.app.use('/api/login', this.loginRouter.getRouter())
-    this.app.use(
-      '/api/job-roles',
-      this.authenticateToken,
-      this.jobRoleRouter.getRouter()
-    )
-    this.app.use(
-      '/api/users',
-      this.authenticateToken,
-      this.userRouter.getRouter()
-    )
-    this.app.use(
-      '/api/leave-requests',
-      this.authenticateToken,
-      this.leaveRouter.getRouter()
-    )
+    for (const route of this.routers) {
+      const middlewares: express.RequestHandler[] = []
+      if (route.authenticate) {
+        middlewares.push(MiddlewareFactory.authenticateToken)
+      }
+      if (route.limiter) {
+        middlewares.push(route.limiter)
+      }
+      middlewares.push(MiddlewareFactory.logRouteAccess(route.routeName))
+      this.app.use(route.basePath, ...middlewares, route.getRouter())
+    }
   }
 
-  private initialiseErrorHandling(): void {
+  private initialise404Handler(): void {
     this.app.use((req: Request, res: Response) => {
       const requestedUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`
       ResponseHandler.sendErrorResponse(
@@ -80,48 +73,12 @@ export class Server {
     })
   }
 
-  private authenticateToken = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): void => {
-    const authHeader = req.headers.authorization
-
-    if (authHeader) {
-      const tokenReceived = authHeader.split(' ')[1]
-
-      if (!process.env.JWT_SECRET_KEY) {
-        Logger.error(Server.ERROR_TOKEN_SECRET_NOT_DEFINED)
-        ResponseHandler.sendErrorResponse(
-          res,
-          StatusCodes.BAD_REQUEST,
-          Server.ERROR_TOKEN_IS_INVALID
-        )
-        return
+  private initialiseErrorHandling(): void {
+    this.app.use(
+      (err: AppError, _req: Request, res: Response, _next: NextFunction) => {
+        ErrorHandler.handle(err, res)
       }
-
-      jwt.verify(tokenReceived, process.env.JWT_SECRET_KEY, (err, payload) => {
-        if (err) {
-          Logger.error(Server.ERROR_TOKEN_IS_INVALID)
-          ResponseHandler.sendErrorResponse(
-            res,
-            StatusCodes.UNAUTHORIZED,
-            Server.ERROR_TOKEN_IS_INVALID
-          )
-          return
-        }
-
-        req.signedInUser = payload as Request['signedInUser']
-        next()
-      })
-    } else {
-      Logger.error(Server.ERROR_TOKEN_NOT_FOUND)
-      ResponseHandler.sendErrorResponse(
-        res,
-        StatusCodes.UNAUTHORIZED,
-        Server.ERROR_TOKEN_NOT_FOUND
-      )
-    }
+    )
   }
 
   public async start(): Promise<void> {

@@ -3,7 +3,13 @@ import { validate } from 'class-validator'
 import type { Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
-import { Between, In } from 'typeorm'
+import {
+  Between,
+  FindOptionsWhere,
+  In,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+} from 'typeorm'
 import { LeaveRequest } from '../entities/LeaveRequest.entity.ts'
 import { User } from '../entities/User.entity.ts'
 import { Logger } from '../helpers/Logger.ts'
@@ -596,6 +602,44 @@ export class LeaveRequestController {
         return
       }
 
+      const { from, to } = req.query as { from?: string; to?: string }
+
+      let fromDate: Date | undefined
+      let toDate: Date | undefined
+
+      if (from !== undefined) {
+        fromDate = new Date(from)
+        if (isNaN(fromDate.getTime())) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid from date format'
+          )
+          return
+        }
+      }
+
+      if (to !== undefined) {
+        toDate = new Date(to)
+        if (isNaN(toDate.getTime())) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid to date format'
+          )
+          return
+        }
+      }
+
+      if (fromDate && toDate && fromDate > toDate) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'from date must not be after to date'
+        )
+        return
+      }
+
       const team = await this.userRepo.find({ where: { managerId } })
 
       if (team.length === 0) {
@@ -607,8 +651,15 @@ export class LeaveRequestController {
       }
 
       const teamIds = team.map(u => u.id)
+      const where: FindOptionsWhere<LeaveRequest> = {
+        userId: In(teamIds),
+        status: LeaveStatus.Pending,
+      }
+      if (fromDate) where.endDate = MoreThanOrEqual(fromDate)
+      if (toDate) where.startDate = LessThanOrEqual(toDate)
+
       const pendingRequests = await this.leaveRepo.find({
-        where: { userId: In(teamIds), status: LeaveStatus.Pending },
+        where,
         order: { createdAt: 'ASC' },
       })
 
@@ -743,6 +794,159 @@ export class LeaveRequestController {
       })
     } catch (err) {
       Logger.error('Unexpected error in getAllLeaveRequests', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
+    }
+  }
+
+  getTeamUtilisationReport = async (
+    req: Request & { params: { manager_id: string } },
+    res: Response
+  ): Promise<void> => {
+    try {
+      const signedInUser = req.signedInUser?.token
+      const isAdmin = signedInUser?.role === RoleType.Admin
+      const managerId = parseInt(req.params.manager_id, 10)
+
+      if (isNaN(managerId)) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid manager ID'
+        )
+        return
+      }
+
+      if (!isAdmin && signedInUser?.id !== managerId) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.FORBIDDEN,
+          'You can only view utilisation for your own team'
+        )
+        return
+      }
+
+      const manager = await this.userRepo.findOne({ where: { id: managerId } })
+      if (!manager) {
+        ResponseHandler.sendErrorResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          'Invalid manager ID'
+        )
+        return
+      }
+
+      const team = await this.userRepo.find({ where: { managerId } })
+
+      const data = await Promise.all(
+        team.map(async member => {
+          const usedDays = await this.getUsedDays(member.id)
+          const utilisationPercent =
+            member.annualLeaveAllowance > 0 ?
+              Math.round((usedDays / member.annualLeaveAllowance) * 100)
+            : 0
+          return {
+            employee_id: member.id,
+            name: `${member.firstName} ${member.lastName}`,
+            annual_allowance: member.annualLeaveAllowance,
+            days_used: usedDays,
+            days_remaining: member.annualLeaveAllowance - usedDays,
+            utilisation_percent: utilisationPercent,
+          }
+        })
+      )
+
+      res.status(StatusCodes.OK).json({
+        message: `Team utilisation report for manager_id ${managerId}`,
+        data,
+      })
+    } catch (err) {
+      Logger.error('Unexpected error in getTeamUtilisationReport', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Internal server error'
+      )
+    }
+  }
+
+  getStatusBreakdownReport = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const { department_id } = req.query
+      const { start, end } = this.getBusinessYear()
+
+      let userIds: Array<number> | undefined
+      let scope: string
+
+      if (department_id !== undefined) {
+        const deptId = parseInt(department_id as string, 10)
+        if (isNaN(deptId)) {
+          ResponseHandler.sendErrorResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            'Invalid department_id'
+          )
+          return
+        }
+        const deptUsers = await this.userRepo.find({
+          where: { departmentId: deptId },
+        })
+        userIds = deptUsers.map(u => u.id)
+        scope = `department ${deptId}`
+      } else {
+        scope = 'company-wide'
+      }
+
+      const totals: Record<string, number> = {
+        Pending: 0,
+        Approved: 0,
+        Rejected: 0,
+        Cancelled: 0,
+      }
+
+      if (userIds !== undefined && userIds.length === 0) {
+        res.status(StatusCodes.OK).json({
+          message: 'Status breakdown report',
+          data: {
+            scope,
+            business_year: `${this.toDateString(start)} to ${this.toDateString(end)}`,
+            totals,
+          },
+        })
+        return
+      }
+
+      const where: FindOptionsWhere<LeaveRequest> = {
+        startDate: Between(start, end),
+      }
+      if (userIds !== undefined) where.userId = In(userIds)
+
+      const allRequests = await this.leaveRepo.find({ where })
+
+      for (const lr of allRequests) {
+        if (lr.status in totals) totals[lr.status]++
+      }
+
+      res.status(StatusCodes.OK).json({
+        message: 'Status breakdown report',
+        data: {
+          scope,
+          business_year: `${this.toDateString(start)} to ${this.toDateString(end)}`,
+          totals,
+        },
+      })
+    } catch (err) {
+      Logger.error('Unexpected error in getStatusBreakdownReport', {
         error: err instanceof Error ? err.message : String(err),
       })
       ResponseHandler.sendErrorResponse(

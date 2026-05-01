@@ -1,6 +1,0 @@
-export * from './Department.interface.ts'
-export * from './JobRole.interface.ts'
-export * from './LeaveRequest.interface.ts'
-export * from './Role.interface.ts'
-export * from './User.interface.ts'
-export * from './UserManagement.interface.ts'

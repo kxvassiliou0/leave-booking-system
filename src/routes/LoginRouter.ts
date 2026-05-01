@@ -1,10 +1,17 @@
 import { Router } from 'express'
-import { LoginController } from '../controllers/LoginController'
+import { MiddlewareFactory } from '../helpers/MiddlewareFactory.ts'
+import type { ILoginController } from '../types/ILoginController.ts'
+import type { IRouter } from '../types/IRouter.ts'
 
-export class LoginRouter {
+export class LoginRouter implements IRouter {
+  public readonly authenticate = false
+  public readonly routeName = 'login'
+  public readonly limiter = MiddlewareFactory.loginLimiter
+  public readonly basePath = '/api/login'
+
   constructor(
     private router: Router,
-    private loginController: LoginController
+    private loginController: ILoginController
   ) {
     this.addRoutes()
   }

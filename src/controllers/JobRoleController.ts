@@ -5,8 +5,9 @@ import type { Repository } from 'typeorm'
 import { JobRole } from '../entities/JobRole.entity.ts'
 import { Logger } from '../helpers/Logger.ts'
 import { ResponseHandler } from '../helpers/ResponseHandler.ts'
+import type { IEntityController } from '../types/IEntityController.ts'
 
-export class JobRoleController {
+export class JobRoleController implements IEntityController {
   constructor(private readonly jobRoleRepository: Repository<JobRole>) {}
 
   public getAll = async (_req: Request, res: Response): Promise<void> => {

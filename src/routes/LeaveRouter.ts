@@ -1,9 +1,16 @@
 import { RoleType } from '@enums'
 import { Router } from 'express'
 import { LeaveRequestController } from '../controllers/LeaveRequestController.ts'
+import { MiddlewareFactory } from '../helpers/MiddlewareFactory.ts'
 import { requireRole } from '../middleware/requireRole.ts'
+import type { IRouter } from '../types/IRouter.ts'
 
-export class LeaveRouter {
+export class LeaveRouter implements IRouter {
+  public readonly authenticate = true
+  public readonly routeName = 'leave-requests'
+  public readonly limiter = MiddlewareFactory.jwtRateLimiter
+  public readonly basePath = '/api/leave-requests'
+
   constructor(
     private readonly router: Router,
     private readonly leaveController: LeaveRequestController
@@ -16,28 +23,24 @@ export class LeaveRouter {
   }
 
   private addRoutes(): void {
-    // Admin can view all leave requests, managers can view their team's
     this.router.get(
       '/',
       requireRole(RoleType.Admin, RoleType.Manager),
       this.leaveController.getAllLeaveRequests
     )
 
-    // All roles can submit leave requests
     this.router.post(
       '/',
       requireRole(RoleType.Employee, RoleType.Manager, RoleType.Admin),
       this.leaveController.createLeaveRequest
     )
 
-    // All roles can cancel leave requests
     this.router.delete(
       '/',
       requireRole(RoleType.Employee, RoleType.Manager, RoleType.Admin),
       this.leaveController.deleteLeaveRequest
     )
 
-    // Managers and admins can approve or reject leave requests
     this.router.patch(
       '/approve',
       requireRole(RoleType.Manager, RoleType.Admin),
@@ -49,14 +52,24 @@ export class LeaveRouter {
       this.leaveController.rejectLeaveRequest
     )
 
-    // Managers and admins can view pending requests for a team
     this.router.get(
       '/pending/manager/:manager_id',
       requireRole(RoleType.Manager, RoleType.Admin),
       this.leaveController.getPendingRequestsByManager
     )
 
-    // All authenticated users can view leave status and remaining leave
+    this.router.get(
+      '/reports/team-utilisation/:manager_id',
+      requireRole(RoleType.Manager, RoleType.Admin),
+      this.leaveController.getTeamUtilisationReport
+    )
+
+    this.router.get(
+      '/reports/status-breakdown',
+      requireRole(RoleType.Admin),
+      this.leaveController.getStatusBreakdownReport
+    )
+
     this.router.get(
       '/status/:employee_id',
       this.leaveController.getLeaveRequestsByEmployee

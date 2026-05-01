@@ -1,9 +1,16 @@
 import { RoleType } from '@enums'
 import { Router } from 'express'
 import { UserController } from '../controllers/UserController.ts'
+import { MiddlewareFactory } from '../helpers/MiddlewareFactory.ts'
 import { requireRole } from '../middleware/requireRole.ts'
+import type { IRouter } from '../types/IRouter.ts'
 
-export class UserRouter {
+export class UserRouter implements IRouter {
+  public readonly authenticate = true
+  public readonly routeName = 'users'
+  public readonly limiter = MiddlewareFactory.jwtRateLimiter
+  public readonly basePath = '/api/users'
+
   constructor(
     private readonly router: Router,
     private readonly userController: UserController

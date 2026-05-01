@@ -23,6 +23,12 @@ const mockLeaveController = {
   getRemainingLeave: jest.fn((req, res) =>
     res.status(StatusCodes.OK).json({ employeeId: req.params.employee_id })
   ),
+  getTeamUtilisationReport: jest.fn((req, res) =>
+    res.status(StatusCodes.OK).json({ managerId: req.params.manager_id })
+  ),
+  getStatusBreakdownReport: jest.fn((_req, res) =>
+    res.status(StatusCodes.OK).json({ scope: 'company-wide' })
+  ),
 } as unknown as LeaveRequestController
 
 const router = Router()
@@ -124,6 +130,24 @@ describe('LeaveRouter', () => {
     const reqArg = (mockLeaveController.getPendingRequestsByManager as jest.Mock).mock.calls[0][0]
     expect(reqArg.params.manager_id).toBe(managerId)
     expect(mockLeaveController.getPendingRequestsByManager).toHaveBeenCalled()
+    expect(response.status).toBe(StatusCodes.OK)
+  })
+
+  it('GET /leave-requests/reports/team-utilisation/:manager_id calls getTeamUtilisationReport', async () => {
+    const managerId = '3'
+
+    const response = await request(app).get(`${BASE_URL}/reports/team-utilisation/${managerId}`)
+
+    const reqArg = (mockLeaveController.getTeamUtilisationReport as jest.Mock).mock.calls[0][0]
+    expect(reqArg.params.manager_id).toBe(managerId)
+    expect(mockLeaveController.getTeamUtilisationReport).toHaveBeenCalled()
+    expect(response.status).toBe(StatusCodes.OK)
+  })
+
+  it('GET /leave-requests/reports/status-breakdown calls getStatusBreakdownReport', async () => {
+    const response = await request(app).get(`${BASE_URL}/reports/status-breakdown`)
+
+    expect(mockLeaveController.getStatusBreakdownReport).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
   })
 })

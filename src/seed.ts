@@ -1,8 +1,7 @@
 import { LeaveStatus, LeaveType, RoleType } from '@enums'
-import type { LeaveRequest as LeaveRequestContract, User as UserContract } from '@interfaces'
+import { config } from 'dotenv'
 import 'reflect-metadata'
 import { DataSource } from 'typeorm'
-import { config } from 'dotenv'
 import { AppDataSource } from './data_source.ts'
 import { Department } from './entities/Department.entity.ts'
 import { JobRole } from './entities/JobRole.entity.ts'
@@ -11,7 +10,10 @@ import { User } from './entities/User.entity.ts'
 
 config()
 
-type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email'> & {
+type SeedUserInput = {
+  firstname: string
+  surname: string
+  email: string
   password: string
   role: RoleType
   annualLeaveAllowance: number
@@ -20,11 +22,13 @@ type SeedUserInput = Pick<UserContract, 'firstname' | 'surname' | 'email'> & {
   managerId: number | null
 }
 
-type SeedLeaveInput = Pick<
-  LeaveRequestContract,
-  'leaveType' | 'startDate' | 'endDate' | 'status' | 'reason'
-> & {
+type SeedLeaveInput = {
   userId: number
+  leaveType: LeaveType
+  startDate: Date
+  endDate: Date
+  status: LeaveStatus
+  reason: string | null
   daysRequested: number
   reviewedById: number | null
 }
@@ -67,14 +71,19 @@ async function seed() {
     departmentRepo.create({ name: 'Marketing' }),
   ])
 
-  const [contractor, seniorContractor, hrSpecialist, financeAnalyst, marketingExecutive] =
-    await jobRoleRepo.save([
-      jobRoleRepo.create({ name: 'Contractor' }),
-      jobRoleRepo.create({ name: 'Senior Contractor' }),
-      jobRoleRepo.create({ name: 'HR Specialist' }),
-      jobRoleRepo.create({ name: 'Finance Analyst' }),
-      jobRoleRepo.create({ name: 'Marketing Executive' }),
-    ])
+  const [
+    contractor,
+    seniorContractor,
+    hrSpecialist,
+    financeAnalyst,
+    marketingExecutive,
+  ] = await jobRoleRepo.save([
+    jobRoleRepo.create({ name: 'Contractor' }),
+    jobRoleRepo.create({ name: 'Senior Contractor' }),
+    jobRoleRepo.create({ name: 'HR Specialist' }),
+    jobRoleRepo.create({ name: 'Finance Analyst' }),
+    jobRoleRepo.create({ name: 'Marketing Executive' }),
+  ])
 
   const createUser = (data: SeedUserInput) =>
     userRepo.create({
@@ -117,8 +126,8 @@ async function seed() {
     }),
     createUser({
       firstname: 'Carol',
-      surname: 'Reyes',
-      email: 'carol.reyes@company.com',
+      surname: 'Reeves',
+      email: 'carol.reeves@company.com',
       password: 'Password123!',
       role: RoleType.Manager,
       annualLeaveAllowance: 25,
@@ -131,8 +140,8 @@ async function seed() {
   const [emp1, emp2, emp3, emp4] = await userRepo.save([
     createUser({
       firstname: 'David',
-      surname: 'Okafor',
-      email: 'david.okafor@company.com',
+      surname: 'Jones',
+      email: 'david.jones@company.com',
       password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
@@ -142,8 +151,8 @@ async function seed() {
     }),
     createUser({
       firstname: 'Eve',
-      surname: 'Nakamura',
-      email: 'eve.nakamura@company.com',
+      surname: 'Knowles',
+      email: 'eve.knowles@company.com',
       password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
@@ -164,8 +173,8 @@ async function seed() {
     }),
     createUser({
       firstname: 'Grace',
-      surname: 'Osei',
-      email: 'grace.osei@company.com',
+      surname: 'Williams',
+      email: 'grace.williams@company.com',
       password: 'Password123!',
       role: RoleType.Employee,
       annualLeaveAllowance: 25,
@@ -257,13 +266,17 @@ async function seed() {
   )
   console.log('\nAccounts (password: Password123!)')
   console.log('Admin:     alice.thompson@company.com  (HR Specialist)')
-  console.log('Managers:  bob.mitchell@company.com (Senior Contractor), carol.reyes@company.com (Finance Analyst)')
-  console.log('Employees: david.okafor (Contractor), eve.nakamura (Contractor), frank.harrison (Finance Analyst), grace.osei (Marketing Executive) @company.com')
+  console.log(
+    'Managers:  bob.mitchell@company.com (Senior Contractor), carol.reyes@company.com (Finance Analyst)'
+  )
+  console.log(
+    'Employees: david.jones (Contractor), eve.knowles (Contractor), frank.harrison (Finance Analyst), grace.williams (Marketing Executive) @company.com'
+  )
 
   await AppDataSource.destroy()
 }
 
-seed().catch((err) => {
+seed().catch(err => {
   console.error('Seed failed:', err)
   process.exit(1)
 })
