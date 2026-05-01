@@ -1,8 +1,4 @@
-import express, {
-  type NextFunction,
-  type Request,
-  type Response,
-} from 'express'
+import express, { type Request, type Response } from 'express'
 import helmet from 'helmet'
 import { StatusCodes } from 'http-status-codes'
 import morgan, { type StreamOptions } from 'morgan'
@@ -74,11 +70,9 @@ export class Server {
   }
 
   private initialiseErrorHandling(): void {
-    this.app.use(
-      (err: AppError, _req: Request, res: Response, _next: NextFunction) => {
-        ErrorHandler.handle(err, res)
-      }
-    )
+    this.app.use((err: AppError, _req: Request, res: Response) => {
+      ErrorHandler.handle(err, res)
+    })
   }
 
   public async start(): Promise<void> {
