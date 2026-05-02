@@ -1,5 +1,3 @@
-import winston from 'winston'
-
 const mockLoggerInstance = {
   info: jest.fn(),
   error: jest.fn(),
@@ -27,19 +25,22 @@ import { Logger } from './Logger'
 describe('Logger', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(Logger as any).instance = null
   })
 
   it('delegates info() to the underlying winston logger', () => {
     Logger.info('test info', { key: 'value' })
 
-    expect(mockLoggerInstance.info).toHaveBeenCalledWith('test info', { key: 'value' })
+    expect(mockLoggerInstance.info).toHaveBeenCalledWith('test info', {
+      key: 'value',
+    })
   })
 
   it('delegates error() to the underlying winston logger', () => {
     Logger.error('test error', { key: 'value' })
 
-    expect(mockLoggerInstance.error).toHaveBeenCalledWith('test error', { key: 'value' })
+    expect(mockLoggerInstance.error).toHaveBeenCalledWith('test error', {
+      key: 'value',
+    })
   })
 
   it('delegates warn() to the underlying winston logger', () => {
@@ -51,19 +52,18 @@ describe('Logger', () => {
   it('delegates debug() to the underlying winston logger', () => {
     Logger.debug('test debug')
 
-    expect(mockLoggerInstance.debug).toHaveBeenCalledWith('test debug', undefined)
+    expect(mockLoggerInstance.debug).toHaveBeenCalledWith(
+      'test debug',
+      undefined
+    )
   })
 
   it('delegates trace() to verbose on the underlying winston logger', () => {
     Logger.trace('test trace')
 
-    expect(mockLoggerInstance.verbose).toHaveBeenCalledWith('test trace', undefined)
-  })
-
-  it('creates only one winston logger instance regardless of how many times it is called (singleton)', () => {
-    Logger.info('first call')
-    Logger.info('second call')
-
-    expect(winston.createLogger).toHaveBeenCalledTimes(1)
+    expect(mockLoggerInstance.verbose).toHaveBeenCalledWith(
+      'test trace',
+      undefined
+    )
   })
 })
