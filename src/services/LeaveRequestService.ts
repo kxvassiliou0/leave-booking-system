@@ -214,16 +214,38 @@ export class LeaveRequestService implements ILeaveRequestService {
       throw new AppError('Unauthorised', StatusCodes.FORBIDDEN)
     }
 
+    if (leaveRequest.status === LeaveStatus.Cancelled) {
+      throw new AppError('Leave request is already cancelled', StatusCodes.BAD_REQUEST)
+    }
+    if (leaveRequest.status === LeaveStatus.Rejected) {
+      throw new AppError('Cannot cancel a rejected leave request', StatusCodes.BAD_REQUEST)
+    }
+
+    const wasApproved = leaveRequest.status === LeaveStatus.Approved
+    const daysToRestore = wasApproved ? leaveRequest.daysRequested : 0
+
     leaveRequest.status = LeaveStatus.Cancelled
     if (reason) leaveRequest.managerNote = reason
 
     const updated = await this.leaveRepo.save(leaveRequest)
-    Logger.info('Leave request cancelled', { leave_request_id, employee_id })
+    Logger.info('Leave request cancelled', { leave_request_id, employee_id, days_restored: daysToRestore })
 
     const data: Record<string, unknown> = { ...this.formatLeaveRequest(updated) }
     if (reason) data.reason = reason
 
-    return { message: 'Leave request has been cancelled', data }
+    if (wasApproved) {
+      const user = await this.userRepo.findOne({ where: { id: Number(employee_id) } })
+      const newUsedDays = await this.getUsedDays(Number(employee_id))
+      data.days_restored = daysToRestore
+      data.new_days_remaining = user !== null ? user.annualLeaveAllowance - newUsedDays : undefined
+    }
+
+    const message =
+      wasApproved
+        ? `Leave request has been cancelled. ${daysToRestore} day(s) have been restored to your annual leave balance.`
+        : 'Leave request has been cancelled'
+
+    return { message, data }
   }
 
   async approveLeaveRequest(
@@ -442,12 +464,53 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
   }
 
+  private buildDateLeaveTypeFilters(
+    query: Record<string, unknown>
+  ): { leaveTypeFilter?: LeaveType; fromDate?: Date; toDate?: Date } {
+    const { leave_type, from, to } = query
+
+    let leaveTypeFilter: LeaveType | undefined
+    if (leave_type !== undefined) {
+      if (!VALID_LEAVE_TYPES.includes(leave_type as LeaveType)) {
+        throw new AppError(
+          `Invalid leave_type. Must be one of: ${VALID_LEAVE_TYPES.join(', ')}`,
+          StatusCodes.BAD_REQUEST
+        )
+      }
+      leaveTypeFilter = leave_type as LeaveType
+    }
+
+    let fromDate: Date | undefined
+    let toDate: Date | undefined
+    if (from !== undefined) {
+      fromDate = new Date(from as string)
+      if (isNaN(fromDate.getTime())) throw new AppError('Invalid from date format', StatusCodes.BAD_REQUEST)
+    }
+    if (to !== undefined) {
+      toDate = new Date(to as string)
+      if (isNaN(toDate.getTime())) throw new AppError('Invalid to date format', StatusCodes.BAD_REQUEST)
+    }
+    if (fromDate && toDate && fromDate > toDate) {
+      throw new AppError('from date must not be after to date', StatusCodes.BAD_REQUEST)
+    }
+
+    return { leaveTypeFilter, fromDate, toDate }
+  }
+
   async getAllLeaveRequests(
     token: TokenPayload | undefined,
     query: Record<string, unknown>
   ): Promise<ServiceResult> {
     const isAdmin = token?.role === RoleType.Admin
     const { employee_id, manager_id } = query
+    const { leaveTypeFilter, fromDate, toDate } = this.buildDateLeaveTypeFilters(query)
+
+    const applyFilters = (where: FindOptionsWhere<LeaveRequest>): FindOptionsWhere<LeaveRequest> => {
+      if (leaveTypeFilter) where.leaveType = leaveTypeFilter
+      if (fromDate) where.endDate = MoreThanOrEqual(fromDate)
+      if (toDate) where.startDate = LessThanOrEqual(toDate)
+      return where
+    }
 
     if (!isAdmin) {
       const managerId = token?.id
@@ -457,7 +520,7 @@ export class LeaveRequestService implements ILeaveRequestService {
       }
       const teamIds = team.map(u => u.id)
       const requests = await this.leaveRepo.find({
-        where: { userId: In(teamIds) },
+        where: applyFilters({ userId: In(teamIds) }),
         order: { createdAt: 'DESC' },
       })
       return {
@@ -479,7 +542,7 @@ export class LeaveRequestService implements ILeaveRequestService {
       const user = await this.userRepo.findOne({ where: { id } })
       if (!user) throw new AppError('Employee not found', StatusCodes.BAD_REQUEST)
       const requests = await this.leaveRepo.find({
-        where: { userId: id },
+        where: applyFilters({ userId: id }),
         order: { createdAt: 'DESC' },
       })
       return {
@@ -502,7 +565,7 @@ export class LeaveRequestService implements ILeaveRequestService {
       }
       const teamIds = team.map(u => u.id)
       const requests = await this.leaveRepo.find({
-        where: { userId: In(teamIds) },
+        where: applyFilters({ userId: In(teamIds) }),
         order: { createdAt: 'DESC' },
       })
       return {
@@ -511,7 +574,10 @@ export class LeaveRequestService implements ILeaveRequestService {
       }
     }
 
-    const requests = await this.leaveRepo.find({ order: { createdAt: 'DESC' } })
+    const requests = await this.leaveRepo.find({
+      where: applyFilters({}),
+      order: { createdAt: 'DESC' },
+    })
     return {
       message: 'All leave requests',
       data: requests.map(lr => this.formatLeaveRequest(lr)),

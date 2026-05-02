@@ -224,6 +224,48 @@ describe('LeaveRequestService.deleteLeaveRequest', () => {
     // Assert
     expect(result.message).toBe('Leave request has been cancelled')
   })
+
+  it('cancels an approved leave request and returns days_restored in response', async () => {
+    // Arrange
+    const token = { id: 4, role: RoleType.Employee }
+    const lr = makeLeaveRequest({ userId: 4, status: LeaveStatus.Approved, daysRequested: 5 })
+    const user = makeUser({ id: 4, annualLeaveAllowance: 25 })
+    mockLeaveRepo.findOne.mockResolvedValue(lr)
+    mockLeaveRepo.save.mockResolvedValue({ ...lr, status: LeaveStatus.Cancelled })
+    mockUserRepo.findOne.mockResolvedValue(user)
+    mockLeaveRepo.find.mockResolvedValue([])
+
+    // Act
+    const result = await service.deleteLeaveRequest(token, { leave_request_id: 1 })
+
+    // Assert
+    expect(result.message).toContain('5 day(s) have been restored')
+    expect(result.data).toMatchObject({ days_restored: 5, new_days_remaining: 25 })
+  })
+
+  it('throws BAD_REQUEST when cancelling an already cancelled request', async () => {
+    // Arrange
+    const token = { id: 4, role: RoleType.Employee }
+    const lr = makeLeaveRequest({ userId: 4, status: LeaveStatus.Cancelled })
+    mockLeaveRepo.findOne.mockResolvedValue(lr)
+
+    // Act & Assert
+    await expect(
+      service.deleteLeaveRequest(token, { leave_request_id: 1 })
+    ).rejects.toThrow(new AppError('Leave request is already cancelled', StatusCodes.BAD_REQUEST))
+  })
+
+  it('throws BAD_REQUEST when cancelling a rejected request', async () => {
+    // Arrange
+    const token = { id: 4, role: RoleType.Employee }
+    const lr = makeLeaveRequest({ userId: 4, status: LeaveStatus.Rejected })
+    mockLeaveRepo.findOne.mockResolvedValue(lr)
+
+    // Act & Assert
+    await expect(
+      service.deleteLeaveRequest(token, { leave_request_id: 1 })
+    ).rejects.toThrow(new AppError('Cannot cancel a rejected leave request', StatusCodes.BAD_REQUEST))
+  })
 })
 
 describe('LeaveRequestService.approveLeaveRequest', () => {
@@ -550,6 +592,42 @@ describe('LeaveRequestService.getAllLeaveRequests', () => {
 
     // Assert
     expect(result.data).toEqual([])
+  })
+
+  it('throws BAD_REQUEST when leave_type filter is invalid', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+
+    // Act & Assert
+    await expect(
+      service.getAllLeaveRequests(token, { leave_type: 'Holiday' })
+    ).rejects.toThrow(AppError)
+  })
+
+  it('throws BAD_REQUEST when from date filter is invalid', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+
+    // Act & Assert
+    await expect(
+      service.getAllLeaveRequests(token, { from: 'not-a-date' })
+    ).rejects.toThrow(new AppError('Invalid from date format', StatusCodes.BAD_REQUEST))
+  })
+
+  it('returns leave requests filtered by leave_type as admin', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+    const lr = makeLeaveRequest({ leaveType: LeaveType.Vacation })
+    mockLeaveRepo.find.mockResolvedValue([lr])
+
+    // Act
+    const result = await service.getAllLeaveRequests(token, { leave_type: 'Vacation' })
+
+    // Assert
+    expect(result.message).toBe('All leave requests')
+    expect(mockLeaveRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ leaveType: LeaveType.Vacation }) })
+    )
   })
 })
 
