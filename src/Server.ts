@@ -46,7 +46,7 @@ export class Server {
 
   private initialiseRoutes(): void {
     for (const route of this.routers) {
-      const middlewares: express.RequestHandler[] = []
+      const middlewares: Array<express.RequestHandler> = []
       if (route.authenticate) {
         middlewares.push(MiddlewareFactory.authenticateToken)
       }

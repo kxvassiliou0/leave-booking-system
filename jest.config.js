@@ -10,4 +10,19 @@ module.exports = {
     '^@interfaces$': '<rootDir>/src/interfaces/index.ts',
     '^@models$': '<rootDir>/src/models/index.ts',
   },
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.test.ts',
+    '!src/index.ts',
+    '!src/data_source.ts',
+    '!src/seed.ts',
+  ],
+  coverageThreshold: {
+    global: {
+      statements: 70,
+      branches: 60,
+      functions: 70,
+      lines: 70,
+    },
+  },
 }
