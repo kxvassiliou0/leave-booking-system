@@ -22,11 +22,14 @@ describe('ErrorHandler', () => {
   })
 
   it('logs the error message and sends the error response with the AppError status code', () => {
+    // Arrange
     const err = new AppError('Something failed', StatusCodes.BAD_REQUEST)
     const res = mockResponse()
 
+    // Act
     ErrorHandler.handle(err, res)
 
+    // Assert
     expect(Logger.error).toHaveBeenCalledWith('Something failed')
     expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
       res,

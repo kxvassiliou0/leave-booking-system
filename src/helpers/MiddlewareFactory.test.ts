@@ -4,14 +4,13 @@ import jwt from 'jsonwebtoken'
 import type { AuthenticatedJWTRequest } from '../interfaces/AuthenticatedJWTRequest.interface'
 import { AUTH_ERRORS } from './AuthErrors'
 import { MiddlewareFactory } from './MiddlewareFactory'
+import { TEST_JWT_SECRET } from '../test/testConfig'
 
 jest.mock('./Logger')
 jest.mock('./ResponseHandler')
 
 import { Logger } from './Logger'
 import { ResponseHandler } from './ResponseHandler'
-
-const TEST_SECRET = 'test-jwt-secret'
 
 function mockRequest(headers: Record<string, string> = {}): AuthenticatedJWTRequest {
   return { headers, ip: '127.0.0.1' } as unknown as AuthenticatedJWTRequest
@@ -27,7 +26,7 @@ function mockResponse(): Response {
 describe('MiddlewareFactory', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    process.env.JWT_SECRET_KEY = TEST_SECRET
+    process.env.JWT_SECRET_KEY = TEST_JWT_SECRET
   })
 
   afterEach(() => {
@@ -36,12 +35,15 @@ describe('MiddlewareFactory', () => {
 
   describe('logRouteAccess', () => {
     it('logs the route and IP then calls next()', () => {
+      // Arrange
       const req = mockRequest()
       const res = mockResponse()
       const next = jest.fn() as NextFunction
 
+      // Act
       MiddlewareFactory.logRouteAccess('users')(req, res, next)
 
+      // Assert
       expect(Logger.info).toHaveBeenCalledWith('users accessed by 127.0.0.1')
       expect(next).toHaveBeenCalled()
     })
@@ -49,12 +51,15 @@ describe('MiddlewareFactory', () => {
 
   describe('authenticateToken', () => {
     it('returns UNAUTHORIZED when the Authorization header is missing', () => {
+      // Arrange
       const req = mockRequest()
       const res = mockResponse()
       const next = jest.fn() as NextFunction
 
+      // Act
       MiddlewareFactory.authenticateToken(req, res, next)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.UNAUTHORIZED,
@@ -64,13 +69,16 @@ describe('MiddlewareFactory', () => {
     })
 
     it('returns BAD_REQUEST when JWT_SECRET_KEY environment variable is not set', () => {
+      // Arrange
       delete process.env.JWT_SECRET_KEY
       const req = mockRequest({ authorization: 'Bearer sometoken' })
       const res = mockResponse()
       const next = jest.fn() as NextFunction
 
+      // Act
       MiddlewareFactory.authenticateToken(req, res, next)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.BAD_REQUEST,
@@ -80,12 +88,15 @@ describe('MiddlewareFactory', () => {
     })
 
     it('returns UNAUTHORIZED when the token signature is invalid', () => {
+      // Arrange
       const req = mockRequest({ authorization: 'Bearer not.a.valid.token' })
       const res = mockResponse()
       const next = jest.fn() as NextFunction
 
+      // Act
       MiddlewareFactory.authenticateToken(req, res, next)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.UNAUTHORIZED,
@@ -95,14 +106,17 @@ describe('MiddlewareFactory', () => {
     })
 
     it('calls next() and attaches signedInUser to req when token is valid', () => {
+      // Arrange
       const payload = { token: { id: 1, email: 'user@test.com', role: 'Employee' } }
-      const token = jwt.sign(payload, TEST_SECRET)
+      const token = jwt.sign(payload, TEST_JWT_SECRET)
       const req = mockRequest({ authorization: `Bearer ${token}` })
       const res = mockResponse()
       const next = jest.fn() as NextFunction
 
+      // Act
       MiddlewareFactory.authenticateToken(req, res, next)
 
+      // Assert
       expect(next).toHaveBeenCalled()
       expect(req.signedInUser).toBeDefined()
       expect(req.signedInUser?.token?.email).toBe('user@test.com')

@@ -38,19 +38,26 @@ describe('JobRoleRouter', () => {
   })
 
   it('getAll on GET /job-roles can be called', async () => {
+    // Arrange - app and mock controller configured above
+
+    // Act
     const response = await request(app).get(BASE_URL)
 
+    // Assert
     expect(mockJobRoleController.getAll).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
     expect(response.body).toEqual([])
   })
 
   it('getById route GET /job-roles/:id can be called', async () => {
+    // Arrange
     const id = '1'
     const endPoint = `${BASE_URL}/${id}`
 
+    // Act
     const response = await request(app).get(endPoint)
 
+    // Assert
     const reqArg = (mockJobRoleController.getById as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(endPoint)
     expect(response.status).toBe(StatusCodes.OK)
@@ -58,10 +65,13 @@ describe('JobRoleRouter', () => {
   })
 
   it('create route POST /job-roles can be called', async () => {
+    // Arrange
     const newJobRoleData = { name: 'Senior Contractor' }
 
+    // Act
     const response = await request(app).post(BASE_URL).send(newJobRoleData)
 
+    // Assert
     const body = (mockJobRoleController.create as jest.Mock).mock.calls[0][0].body
     expect(body).toBeDefined()
     expect(mockJobRoleController.create).toHaveBeenCalled()
@@ -70,12 +80,15 @@ describe('JobRoleRouter', () => {
   })
 
   it('update route PATCH /job-roles/:id can be called', async () => {
+    // Arrange
     const id = '1'
     const endPoint = `${BASE_URL}/${id}`
     const updateData = { id, name: 'Lead Engineer' }
 
+    // Act
     const response = await request(app).patch(endPoint).send(updateData)
 
+    // Assert
     const reqArg = (mockJobRoleController.update as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(endPoint)
     expect(reqArg.body).toStrictEqual(updateData)
@@ -84,11 +97,14 @@ describe('JobRoleRouter', () => {
   })
 
   it('delete route DELETE /job-roles/:id can be called', async () => {
+    // Arrange
     const id = '1'
     const endPoint = `${BASE_URL}/${id}`
 
+    // Act
     const response = await request(app).delete(endPoint)
 
+    // Assert
     const reqArg = (mockJobRoleController.delete as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(endPoint)
     expect(mockJobRoleController.delete).toHaveBeenCalled()

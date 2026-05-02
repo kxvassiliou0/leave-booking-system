@@ -18,47 +18,64 @@ function makeValidLeaveRequest(): LeaveRequest {
 
 describe('LeaveRequest entity tests', () => {
   it('a valid leave request passes validation', async () => {
+    // Arrange
     const lr = makeValidLeaveRequest()
+
+    // Act
     const errors = await validate(lr)
+
+    // Assert
     expect(errors.length).toBe(0)
   })
 
   it('a zero daysRequested is considered invalid', async () => {
+    // Arrange
     const lr = makeValidLeaveRequest()
     lr.daysRequested = 0
 
+    // Act
     const errors = await validate(lr)
 
+    // Assert
     expect(errors.length).toBeGreaterThan(0)
     expect(errors[0].constraints).toHaveProperty('isPositive')
   })
 
   it('a negative daysRequested is considered invalid', async () => {
+    // Arrange
     const lr = makeValidLeaveRequest()
     lr.daysRequested = -3
 
+    // Act
     const errors = await validate(lr)
 
+    // Assert
     expect(errors.length).toBeGreaterThan(0)
     expect(errors[0].constraints).toHaveProperty('isPositive')
   })
 
   it('an invalid leaveType enum value is considered invalid', async () => {
+    // Arrange
     const lr = makeValidLeaveRequest()
     lr.leaveType = 'InvalidType' as LeaveType
 
+    // Act
     const errors = await validate(lr)
 
+    // Assert
     expect(errors.length).toBeGreaterThan(0)
     expect(errors[0].constraints).toHaveProperty('isEnum')
   })
 
   it('an invalid status enum value is considered invalid', async () => {
+    // Arrange
     const lr = makeValidLeaveRequest()
     lr.status = 'InvalidStatus' as LeaveStatus
 
+    // Act
     const errors = await validate(lr)
 
+    // Assert
     expect(errors.length).toBeGreaterThan(0)
     expect(errors[0].constraints).toHaveProperty('isEnum')
   })

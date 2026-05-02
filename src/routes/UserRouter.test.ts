@@ -38,17 +38,25 @@ describe('UserRouter', () => {
   })
 
   it('GET /users calls getAll', async () => {
+    // Arrange - app and mock controller configured above
+
+    // Act
     const response = await request(app).get(BASE_URL)
 
+    // Assert
     expect(mockUserController.getAll).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
     expect(response.body).toEqual([])
   })
 
   it('GET /users/:id calls getById', async () => {
+    // Arrange
     const id = '1'
+
+    // Act
     const response = await request(app).get(`${BASE_URL}/${id}`)
 
+    // Assert
     const reqArg = (mockUserController.getById as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(`${BASE_URL}/${id}`)
     expect(mockUserController.getById).toHaveBeenCalled()
@@ -57,10 +65,13 @@ describe('UserRouter', () => {
   })
 
   it('POST /users calls create', async () => {
+    // Arrange
     const newUser = { firstName: 'Alice', lastName: 'Johnson', email: 'alice@company.com' }
 
+    // Act
     const response = await request(app).post(BASE_URL).send(newUser)
 
+    // Assert
     const body = (mockUserController.create as jest.Mock).mock.calls[0][0].body
     expect(body).toStrictEqual(newUser)
     expect(mockUserController.create).toHaveBeenCalled()
@@ -68,11 +79,14 @@ describe('UserRouter', () => {
   })
 
   it('PATCH /users/:id calls update', async () => {
+    // Arrange
     const id = '1'
     const updateData = { firstName: 'Bob' }
 
+    // Act
     const response = await request(app).patch(`${BASE_URL}/${id}`).send(updateData)
 
+    // Assert
     const reqArg = (mockUserController.update as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(`${BASE_URL}/${id}`)
     expect(reqArg.body).toStrictEqual(updateData)
@@ -81,10 +95,13 @@ describe('UserRouter', () => {
   })
 
   it('DELETE /users/:id calls delete', async () => {
+    // Arrange
     const id = '1'
 
+    // Act
     const response = await request(app).delete(`${BASE_URL}/${id}`)
 
+    // Assert
     const reqArg = (mockUserController.delete as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(`${BASE_URL}/${id}`)
     expect(mockUserController.delete).toHaveBeenCalled()

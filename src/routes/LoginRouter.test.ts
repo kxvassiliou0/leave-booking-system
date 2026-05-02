@@ -21,19 +21,26 @@ describe('LoginRouter', () => {
   })
 
   it('POST / calls login', async () => {
+    // Arrange - app and mock controller configured above
+
+    // Act
     const response = await request(app).post('/login').send({ email: 'a@b.com', password: 'pass' })
 
+    // Assert
     expect(mockLoginController.login).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.ACCEPTED)
     expect(response.text).toBe('mocked-token')
   })
 
   it('router.post was called with / on construction', () => {
+    // Arrange
     const freshRouter = Router()
     jest.spyOn(freshRouter, 'post')
 
+    // Act
     new LoginRouter(freshRouter, mockLoginController)
 
+    // Assert
     expect(freshRouter.post).toHaveBeenCalledWith('/', mockLoginController.login)
   })
 })

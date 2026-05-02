@@ -1,4 +1,3 @@
-import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { mock } from 'jest-mock-extended'
 import type { Repository, SelectQueryBuilder } from 'typeorm'
@@ -6,32 +5,11 @@ import { LoginController } from './LoginController'
 import { User } from '../entities/User.entity'
 import { PasswordHandler } from '../helpers/PasswordHandler'
 import { ResponseHandler } from '../helpers/ResponseHandler'
+import { makeUser, mockRequest, mockResponse } from '../test/ObjectMother'
+import { TEST_JWT_SECRET } from '../test/testConfig'
 
 jest.mock('../helpers/ResponseHandler')
 jest.mock('../helpers/Logger')
-
-function mockRequest(body: Record<string, unknown> = {}): Request {
-  return { body } as unknown as Request
-}
-
-function mockResponse(): Response {
-  const res = {} as Response
-  res.status = jest.fn().mockReturnValue(res)
-  res.send = jest.fn().mockReturnValue(res)
-  res.json = jest.fn().mockReturnValue(res)
-  return res
-}
-
-function makeUser(overrides: Partial<User> = {}): User {
-  return Object.assign(new User(), {
-    id: 1,
-    email: 'alice@company.com',
-    password: 'hashed',
-    salt: 'somesalt',
-    role: 'Employee',
-    ...overrides,
-  })
-}
 
 describe('LoginController', () => {
   let userRepository: ReturnType<typeof mock<Repository<User>>>
@@ -52,11 +30,14 @@ describe('LoginController', () => {
 
   describe('login', () => {
     it('returns BAD_REQUEST when email is missing', async () => {
-      const req = mockRequest({ password: 'secret' })
+      // Arrange
+      const req = mockRequest({}, { password: 'secret' })
       const res = mockResponse()
 
+      // Act
       await controller.login(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.BAD_REQUEST,
@@ -65,11 +46,14 @@ describe('LoginController', () => {
     })
 
     it('returns BAD_REQUEST when password is missing', async () => {
-      const req = mockRequest({ email: 'alice@company.com' })
+      // Arrange
+      const req = mockRequest({}, { email: 'alice@company.com' })
       const res = mockResponse()
 
+      // Act
       await controller.login(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.BAD_REQUEST,
@@ -78,12 +62,15 @@ describe('LoginController', () => {
     })
 
     it('returns UNAUTHORIZED when user is not found', async () => {
+      // Arrange
       qb.getOne.mockResolvedValue(null)
-      const req = mockRequest({ email: 'nobody@company.com', password: 'pass' })
+      const req = mockRequest({}, { email: 'nobody@company.com', password: 'pass' })
       const res = mockResponse()
 
+      // Act
       await controller.login(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.UNAUTHORIZED,
@@ -92,13 +79,16 @@ describe('LoginController', () => {
     })
 
     it('returns UNAUTHORIZED when password is incorrect', async () => {
+      // Arrange
       qb.getOne.mockResolvedValue(makeUser())
       jest.spyOn(PasswordHandler, 'verifyPassword').mockReturnValue(false)
-      const req = mockRequest({ email: 'alice@company.com', password: 'wrong' })
+      const req = mockRequest({}, { email: 'alice@company.com', password: 'wrong' })
       const res = mockResponse()
 
+      // Act
       await controller.login(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.UNAUTHORIZED,
@@ -107,14 +97,17 @@ describe('LoginController', () => {
     })
 
     it('returns ACCEPTED with a JWT when credentials are valid', async () => {
+      // Arrange
       qb.getOne.mockResolvedValue(makeUser())
       jest.spyOn(PasswordHandler, 'verifyPassword').mockReturnValue(true)
-      process.env.JWT_SECRET_KEY = 'test-secret'
-      const req = mockRequest({ email: 'alice@company.com', password: 'correct' })
+      process.env.JWT_SECRET_KEY = TEST_JWT_SECRET
+      const req = mockRequest({}, { email: 'alice@company.com', password: 'correct' })
       const res = mockResponse()
 
+      // Act
       await controller.login(req, res)
 
+      // Assert
       expect(res.status).toHaveBeenCalledWith(StatusCodes.ACCEPTED)
       expect(res.send).toHaveBeenCalledWith(expect.any(String))
     })

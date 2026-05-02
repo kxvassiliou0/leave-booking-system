@@ -30,33 +30,42 @@ describe('requireRole', () => {
   })
 
   it('calls next() when the user has the required role', () => {
+    // Arrange
     const req = makeRequest(RoleType.Admin)
     const res = mockResponse()
     const next = jest.fn() as NextFunction
 
+    // Act
     requireRole(RoleType.Admin)(req, res, next)
 
+    // Assert
     expect(next).toHaveBeenCalled()
     expect(ResponseHandler.sendErrorResponse).not.toHaveBeenCalled()
   })
 
   it('calls next() when the user has one of multiple allowed roles', () => {
+    // Arrange
     const req = makeRequest(RoleType.Manager)
     const res = mockResponse()
     const next = jest.fn() as NextFunction
 
+    // Act
     requireRole(RoleType.Admin, RoleType.Manager)(req, res, next)
 
+    // Assert
     expect(next).toHaveBeenCalled()
   })
 
   it('returns FORBIDDEN when the user does not have the required role', () => {
+    // Arrange
     const req = makeRequest(RoleType.Employee)
     const res = mockResponse()
     const next = jest.fn() as NextFunction
 
+    // Act
     requireRole(RoleType.Admin)(req, res, next)
 
+    // Assert
     expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
       res,
       StatusCodes.FORBIDDEN,
@@ -66,12 +75,15 @@ describe('requireRole', () => {
   })
 
   it('returns FORBIDDEN when signedInUser is not present on the request', () => {
+    // Arrange
     const req = makeRequest(undefined)
     const res = mockResponse()
     const next = jest.fn() as NextFunction
 
+    // Act
     requireRole(RoleType.Admin)(req, res, next)
 
+    // Assert
     expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
       res,
       StatusCodes.FORBIDDEN,

@@ -38,19 +38,26 @@ describe('DepartmentRouter', () => {
   })
 
   it('getAll on GET /departments can be called', async () => {
+    // Arrange - app and mock controller configured above
+
+    // Act
     const response = await request(app).get(BASE_URL)
 
+    // Assert
     expect(mockDepartmentController.getAll).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
     expect(response.body).toEqual([])
   })
 
   it('getById route GET /departments/:id can be called', async () => {
+    // Arrange
     const id = '1'
     const endPoint = `${BASE_URL}/${id}`
 
+    // Act
     const response = await request(app).get(endPoint)
 
+    // Assert
     const reqArg = (mockDepartmentController.getById as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(endPoint)
     expect(response.status).toBe(StatusCodes.OK)
@@ -58,10 +65,13 @@ describe('DepartmentRouter', () => {
   })
 
   it('create route POST /departments can be called', async () => {
+    // Arrange
     const newDepartmentData = { name: 'Engineering' }
 
+    // Act
     const response = await request(app).post(BASE_URL).send(newDepartmentData)
 
+    // Assert
     const body = (mockDepartmentController.create as jest.Mock).mock.calls[0][0].body
     expect(body).toBeDefined()
     expect(mockDepartmentController.create).toHaveBeenCalled()
@@ -70,12 +80,15 @@ describe('DepartmentRouter', () => {
   })
 
   it('update route PATCH /departments/:id can be called', async () => {
+    // Arrange
     const id = '1'
     const endPoint = `${BASE_URL}/${id}`
     const updateData = { id, name: 'Product' }
 
+    // Act
     const response = await request(app).patch(endPoint).send(updateData)
 
+    // Assert
     const reqArg = (mockDepartmentController.update as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(endPoint)
     expect(reqArg.body).toStrictEqual(updateData)
@@ -84,11 +97,14 @@ describe('DepartmentRouter', () => {
   })
 
   it('delete route DELETE /departments/:id can be called', async () => {
+    // Arrange
     const id = '1'
     const endPoint = `${BASE_URL}/${id}`
 
+    // Act
     const response = await request(app).delete(endPoint)
 
+    // Assert
     const reqArg = (mockDepartmentController.delete as jest.Mock).mock.calls[0][0]
     expect(reqArg.originalUrl).toBe(endPoint)
     expect(mockDepartmentController.delete).toHaveBeenCalled()

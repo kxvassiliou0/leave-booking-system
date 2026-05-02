@@ -1,10 +1,10 @@
-import type { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { mock } from 'jest-mock-extended'
 import type { Repository } from 'typeorm'
 import { JobRoleController } from './JobRoleController'
 import { JobRole } from '../entities/JobRole.entity'
 import { ResponseHandler } from '../helpers/ResponseHandler'
+import { makeJobRole, mockRequest, mockResponse } from '../test/ObjectMother'
 
 jest.mock('../helpers/ResponseHandler')
 jest.mock('../helpers/Logger')
@@ -14,21 +14,6 @@ jest.mock('class-validator', () => ({
 }))
 
 import { validate } from 'class-validator'
-
-function mockRequest(params: Record<string, string> = {}, body: Record<string, unknown> = {}): Request {
-  return { params, body } as unknown as Request
-}
-
-function mockResponse(): Response {
-  const res = {} as Response
-  res.status = jest.fn().mockReturnValue(res)
-  res.json = jest.fn().mockReturnValue(res)
-  return res
-}
-
-function makeJobRole(overrides: Partial<JobRole> = {}): JobRole {
-  return Object.assign(new JobRole(), { id: 1, name: 'Contractor', ...overrides })
-}
 
 describe('JobRoleController', () => {
   let jobRoleRepository: ReturnType<typeof mock<Repository<JobRole>>>
@@ -43,33 +28,42 @@ describe('JobRoleController', () => {
 
   describe('getAll', () => {
     it('returns OK with all job roles', async () => {
+      // Arrange
       const roles = [makeJobRole(), makeJobRole({ id: 2, name: 'Senior Contractor' })]
       jobRoleRepository.find.mockResolvedValue(roles)
       const req = mockRequest()
       const res = mockResponse()
 
+      // Act
       await controller.getAll(req, res)
 
+      // Assert
       expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, roles)
     })
 
     it('returns NO_CONTENT when list is empty', async () => {
+      // Arrange
       jobRoleRepository.find.mockResolvedValue([])
       const req = mockRequest()
       const res = mockResponse()
 
+      // Act
       await controller.getAll(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(res, StatusCodes.NO_CONTENT)
     })
 
     it('returns INTERNAL_SERVER_ERROR on repository error', async () => {
+      // Arrange
       jobRoleRepository.find.mockRejectedValue(new Error('db error'))
       const req = mockRequest()
       const res = mockResponse()
 
+      // Act
       await controller.getAll(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.INTERNAL_SERVER_ERROR,
@@ -80,22 +74,28 @@ describe('JobRoleController', () => {
 
   describe('getById', () => {
     it('returns OK with the job role', async () => {
+      // Arrange
       const role = makeJobRole()
       jobRoleRepository.findOne.mockResolvedValue(role)
       const req = mockRequest({ id: '1' })
       const res = mockResponse()
 
+      // Act
       await controller.getById(req, res)
 
+      // Assert
       expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, role)
     })
 
     it('returns BAD_REQUEST for non-numeric id', async () => {
+      // Arrange
       const req = mockRequest({ id: 'abc' })
       const res = mockResponse()
 
+      // Act
       await controller.getById(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.BAD_REQUEST,
@@ -104,12 +104,15 @@ describe('JobRoleController', () => {
     })
 
     it('returns NOT_FOUND when role does not exist', async () => {
+      // Arrange
       jobRoleRepository.findOne.mockResolvedValue(null)
       const req = mockRequest({ id: '99' })
       const res = mockResponse()
 
+      // Act
       await controller.getById(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.NOT_FOUND,
@@ -118,12 +121,15 @@ describe('JobRoleController', () => {
     })
 
     it('returns INTERNAL_SERVER_ERROR on repository error', async () => {
+      // Arrange
       jobRoleRepository.findOne.mockRejectedValue(new Error('db error'))
       const req = mockRequest({ id: '1' })
       const res = mockResponse()
 
+      // Act
       await controller.getById(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.INTERNAL_SERVER_ERROR,
@@ -134,25 +140,31 @@ describe('JobRoleController', () => {
 
   describe('create', () => {
     it('returns CREATED with the new job role', async () => {
+      // Arrange
       const role = makeJobRole()
       jobRoleRepository.save.mockResolvedValue(role)
       const req = mockRequest({}, { name: 'Contractor' })
       const res = mockResponse()
 
+      // Act
       await controller.create(req, res)
 
+      // Assert
       expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, role, StatusCodes.CREATED)
     })
 
-    it('returns BAD_REQUEST when validate returns errors', async () => {
+    it('returns UNPROCESSABLE_ENTITY when validate returns errors', async () => {
+      // Arrange
       ;(validate as jest.Mock).mockResolvedValue([
         { constraints: { isNotEmpty: 'name should not be empty' } },
       ])
       const req = mockRequest({}, { name: '' })
       const res = mockResponse()
 
+      // Act
       await controller.create(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.UNPROCESSABLE_ENTITY,
@@ -163,6 +175,7 @@ describe('JobRoleController', () => {
 
   describe('update', () => {
     it('returns OK with the updated job role', async () => {
+      // Arrange
       const existing = makeJobRole()
       const updated = makeJobRole({ name: 'Lead Engineer' })
       jobRoleRepository.findOneBy.mockResolvedValue(existing)
@@ -170,17 +183,22 @@ describe('JobRoleController', () => {
       const req = mockRequest({ id: '1' }, { name: 'Lead Engineer' })
       const res = mockResponse()
 
+      // Act
       await controller.update(req, res)
 
+      // Assert
       expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, updated)
     })
 
     it('returns BAD_REQUEST for non-numeric id', async () => {
+      // Arrange
       const req = mockRequest({ id: 'abc' }, { name: 'x' })
       const res = mockResponse()
 
+      // Act
       await controller.update(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.BAD_REQUEST,
@@ -189,12 +207,15 @@ describe('JobRoleController', () => {
     })
 
     it('returns NOT_FOUND when role does not exist', async () => {
+      // Arrange
       jobRoleRepository.findOneBy.mockResolvedValue(null)
       const req = mockRequest({ id: '99' }, { name: 'x' })
       const res = mockResponse()
 
+      // Act
       await controller.update(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.NOT_FOUND,
@@ -205,21 +226,27 @@ describe('JobRoleController', () => {
 
   describe('delete', () => {
     it('returns OK when role is deleted', async () => {
+      // Arrange
       jobRoleRepository.delete.mockResolvedValue({ affected: 1, raw: [] })
       const req = mockRequest({ id: '1' })
       const res = mockResponse()
 
+      // Act
       await controller.delete(req, res)
 
+      // Assert
       expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, 'Job role deleted')
     })
 
     it('returns BAD_REQUEST when no id provided', async () => {
+      // Arrange
       const req = mockRequest({ id: '' })
       const res = mockResponse()
 
+      // Act
       await controller.delete(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.BAD_REQUEST,
@@ -228,12 +255,15 @@ describe('JobRoleController', () => {
     })
 
     it('returns NOT_FOUND when no rows affected', async () => {
+      // Arrange
       jobRoleRepository.delete.mockResolvedValue({ affected: 0, raw: [] })
       const req = mockRequest({ id: '99' })
       const res = mockResponse()
 
+      // Act
       await controller.delete(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.NOT_FOUND,
@@ -242,12 +272,15 @@ describe('JobRoleController', () => {
     })
 
     it('returns CONFLICT on foreign key constraint error', async () => {
+      // Arrange
       jobRoleRepository.delete.mockRejectedValue(new Error('foreign key constraint fails'))
       const req = mockRequest({ id: '1' })
       const res = mockResponse()
 
+      // Act
       await controller.delete(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.CONFLICT,
@@ -256,12 +289,15 @@ describe('JobRoleController', () => {
     })
 
     it('returns INTERNAL_SERVER_ERROR on unexpected repository error', async () => {
+      // Arrange
       jobRoleRepository.delete.mockRejectedValue(new Error('unexpected db error'))
       const req = mockRequest({ id: '1' })
       const res = mockResponse()
 
+      // Act
       await controller.delete(req, res)
 
+      // Assert
       expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
         res,
         StatusCodes.INTERNAL_SERVER_ERROR,
