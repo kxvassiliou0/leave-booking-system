@@ -1,328 +1,205 @@
+import { mock, MockProxy } from 'jest-mock-extended'
 import { StatusCodes } from 'http-status-codes'
-import { mock } from 'jest-mock-extended'
-import type { Repository } from 'typeorm'
 import { DepartmentController } from './DepartmentController'
-import { Department } from '../entities/Department.entity'
-import { ResponseHandler } from '../helpers/ResponseHandler'
+import { AppError } from '../helpers/AppError'
+import type { IDepartmentService } from '../types/IDepartmentService'
 import { makeDepartment, mockRequest, mockResponse } from '../test/ObjectMother'
 
-jest.mock('../helpers/ResponseHandler')
-jest.mock('../helpers/Logger')
-jest.mock('class-validator', () => ({
-  ...jest.requireActual('class-validator'),
-  validate: jest.fn().mockResolvedValue([]),
-}))
+let mockService: MockProxy<IDepartmentService>
+let controller: DepartmentController
 
-import { validate } from 'class-validator'
+beforeEach(() => {
+  mockService = mock<IDepartmentService>()
+  controller = new DepartmentController(mockService)
+  jest.clearAllMocks()
+})
 
-describe('DepartmentController', () => {
-  let departmentRepository: ReturnType<typeof mock<Repository<Department>>>
-  let controller: DepartmentController
+describe('DepartmentController.getAll', () => {
+  it('returns 200 with departments when service returns results', async () => {
+    // Arrange
+    mockService.getAll.mockResolvedValue([makeDepartment()])
+    const req = mockRequest()
+    const res = mockResponse()
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-    ;(validate as jest.Mock).mockResolvedValue([])
-    departmentRepository = mock<Repository<Department>>()
-    controller = new DepartmentController(departmentRepository)
+    // Act
+    await controller.getAll(req, res)
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  describe('getAll', () => {
-    it('returns OK with all departments', async () => {
-      // Arrange
-      const departments = [makeDepartment(), makeDepartment({ id: 2, name: 'HR' })]
-      departmentRepository.find.mockResolvedValue(departments)
-      const req = mockRequest()
-      const res = mockResponse()
+  it('returns 204 when service returns empty array', async () => {
+    // Arrange
+    mockService.getAll.mockResolvedValue([])
+    const req = mockRequest()
+    const res = mockResponse()
 
-      // Act
-      await controller.getAll(req, res)
+    // Act
+    await controller.getAll(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, departments)
-    })
-
-    it('returns NO_CONTENT when list is empty', async () => {
-      // Arrange
-      departmentRepository.find.mockResolvedValue([])
-      const req = mockRequest()
-      const res = mockResponse()
-
-      // Act
-      await controller.getAll(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(res, StatusCodes.NO_CONTENT)
-    })
-
-    it('returns INTERNAL_SERVER_ERROR on repository error', async () => {
-      // Arrange
-      departmentRepository.find.mockRejectedValue(new Error('db error'))
-      const req = mockRequest()
-      const res = mockResponse()
-
-      // Act
-      await controller.getAll(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Failed to retrieve departments'
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.NO_CONTENT)
   })
 
-  describe('getById', () => {
-    it('returns OK with the department', async () => {
-      // Arrange
-      const department = makeDepartment()
-      departmentRepository.findOne.mockResolvedValue(department)
-      const req = mockRequest({ id: '1' })
-      const res = mockResponse()
+  it('returns 500 on unexpected error', async () => {
+    // Arrange
+    mockService.getAll.mockRejectedValue(new Error('DB failure'))
+    const req = mockRequest()
+    const res = mockResponse()
 
-      // Act
-      await controller.getById(req, res)
+    // Act
+    await controller.getAll(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, department)
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
+  })
+})
 
-    it('returns BAD_REQUEST for non-numeric id', async () => {
-      // Arrange
-      const req = mockRequest({ id: 'abc' })
-      const res = mockResponse()
+describe('DepartmentController.getById', () => {
+  it('returns 400 for non-numeric id', async () => {
+    // Arrange
+    const req = mockRequest({ id: 'abc' })
+    const res = mockResponse()
 
-      // Act
-      await controller.getById(req, res)
+    // Act
+    await controller.getById(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.BAD_REQUEST,
-        'Invalid ID format'
-      )
-    })
-
-    it('returns NOT_FOUND when department does not exist', async () => {
-      // Arrange
-      departmentRepository.findOne.mockResolvedValue(null)
-      const req = mockRequest({ id: '99' })
-      const res = mockResponse()
-
-      // Act
-      await controller.getById(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.NOT_FOUND,
-        'Department not found with ID: 99'
-      )
-    })
-
-    it('returns INTERNAL_SERVER_ERROR on repository error', async () => {
-      // Arrange
-      departmentRepository.findOne.mockRejectedValue(new Error('db error'))
-      const req = mockRequest({ id: '1' })
-      const res = mockResponse()
-
-      // Act
-      await controller.getById(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Failed to retrieve department'
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
   })
 
-  describe('create', () => {
-    it('returns CREATED with the new department', async () => {
-      // Arrange
-      const department = makeDepartment()
-      departmentRepository.save.mockResolvedValue(department)
-      const req = mockRequest({}, { name: 'Engineering' })
-      const res = mockResponse()
+  it('returns 200 with department from service', async () => {
+    // Arrange
+    mockService.getById.mockResolvedValue(makeDepartment())
+    const req = mockRequest({ id: '1' })
+    const res = mockResponse()
 
-      // Act
-      await controller.create(req, res)
+    // Act
+    await controller.getById(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, department, StatusCodes.CREATED)
-    })
-
-    it('returns UNPROCESSABLE_ENTITY when validate returns errors', async () => {
-      // Arrange
-      ;(validate as jest.Mock).mockResolvedValue([
-        { constraints: { isNotEmpty: 'name should not be empty' } },
-      ])
-      const req = mockRequest({}, { name: '' })
-      const res = mockResponse()
-
-      // Act
-      await controller.create(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.UNPROCESSABLE_ENTITY,
-        expect.stringContaining('name should not be empty')
-      )
-    })
+    // Assert
+    expect(mockService.getById).toHaveBeenCalledWith(1)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  describe('update', () => {
-    it('returns OK with the updated department', async () => {
-      // Arrange
-      const existing = makeDepartment()
-      const updated = makeDepartment({ name: 'Product' })
-      departmentRepository.findOneBy.mockResolvedValue(existing)
-      departmentRepository.save.mockResolvedValue(updated)
-      const req = mockRequest({ id: '1' }, { name: 'Product' })
-      const res = mockResponse()
+  it('returns 404 when service throws NOT_FOUND AppError', async () => {
+    // Arrange
+    mockService.getById.mockRejectedValue(
+      new AppError('Department not found with ID: 99', StatusCodes.NOT_FOUND)
+    )
+    const req = mockRequest({ id: '99' })
+    const res = mockResponse()
 
-      // Act
-      await controller.update(req, res)
+    // Act
+    await controller.getById(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, updated)
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND)
+  })
+})
 
-    it('returns BAD_REQUEST for non-numeric id', async () => {
-      // Arrange
-      const req = mockRequest({ id: 'abc' }, { name: 'Product' })
-      const res = mockResponse()
+describe('DepartmentController.create', () => {
+  it('returns 201 with created department on success', async () => {
+    // Arrange
+    mockService.create.mockResolvedValue(makeDepartment({ name: 'Legal' }))
+    const req = mockRequest({}, { name: 'Legal' })
+    const res = mockResponse()
 
-      // Act
-      await controller.update(req, res)
+    // Act
+    await controller.create(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.BAD_REQUEST,
-        'Invalid ID format'
-      )
-    })
-
-    it('returns NOT_FOUND when department does not exist', async () => {
-      // Arrange
-      departmentRepository.findOneBy.mockResolvedValue(null)
-      const req = mockRequest({ id: '99' }, { name: 'Product' })
-      const res = mockResponse()
-
-      // Act
-      await controller.update(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.NOT_FOUND,
-        'Department not found'
-      )
-    })
-
-    it('returns UNPROCESSABLE_ENTITY when validate returns errors on update', async () => {
-      // Arrange
-      departmentRepository.findOneBy.mockResolvedValue(makeDepartment())
-      ;(validate as jest.Mock).mockResolvedValue([
-        { constraints: { maxLength: 'name must be shorter than or equal to 100 characters' } },
-      ])
-      const req = mockRequest({ id: '1' }, { name: 'x'.repeat(101) })
-      const res = mockResponse()
-
-      // Act
-      await controller.update(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.UNPROCESSABLE_ENTITY,
-        expect.stringContaining('name must be shorter than or equal to 100 characters')
-      )
-    })
+    // Assert
+    expect(mockService.create).toHaveBeenCalledWith('Legal')
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.CREATED)
   })
 
-  describe('delete', () => {
-    it('returns OK when department is deleted', async () => {
-      // Arrange
-      departmentRepository.delete.mockResolvedValue({ affected: 1, raw: [] })
-      const req = mockRequest({ id: '1' })
-      const res = mockResponse()
+  it('returns 422 when service throws validation AppError', async () => {
+    // Arrange
+    mockService.create.mockRejectedValue(
+      new AppError('isNotEmpty', StatusCodes.UNPROCESSABLE_ENTITY)
+    )
+    const req = mockRequest({}, { name: '' })
+    const res = mockResponse()
 
-      // Act
-      await controller.delete(req, res)
+    // Act
+    await controller.create(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendSuccessResponse).toHaveBeenCalledWith(res, 'Department deleted')
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.UNPROCESSABLE_ENTITY)
+  })
+})
 
-    it('returns BAD_REQUEST when no id provided', async () => {
-      // Arrange
-      const req = mockRequest({ id: '' })
-      const res = mockResponse()
+describe('DepartmentController.update', () => {
+  it('returns 400 for non-numeric id', async () => {
+    // Arrange
+    const req = mockRequest({ id: 'xyz' })
+    const res = mockResponse()
 
-      // Act
-      await controller.delete(req, res)
+    // Act
+    await controller.update(req, res)
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.BAD_REQUEST,
-        'No ID provided'
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
+  })
+
+  it('returns 200 with updated department on success', async () => {
+    // Arrange
+    mockService.update.mockResolvedValue(makeDepartment({ name: 'Software Engineering' }))
+    const req = mockRequest({ id: '1' }, { name: 'Software Engineering' })
+    const res = mockResponse()
+
+    // Act
+    await controller.update(req, res)
+
+    // Assert
+    expect(mockService.update).toHaveBeenCalledWith(1, 'Software Engineering')
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
+})
+
+describe('DepartmentController.delete', () => {
+  it('returns 200 when department is deleted successfully', async () => {
+    // Arrange
+    mockService.delete.mockResolvedValue()
+    const req = mockRequest({ id: '5' })
+    const res = mockResponse()
+
+    // Act
+    await controller.delete(req, res)
+
+    // Assert
+    expect(mockService.delete).toHaveBeenCalledWith(5)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
+
+  it('returns 409 when service throws CONFLICT AppError (FK constraint)', async () => {
+    // Arrange
+    mockService.delete.mockRejectedValue(
+      new AppError(
+        'Cannot delete department: one or more users are assigned to it',
+        StatusCodes.CONFLICT
       )
-    })
+    )
+    const req = mockRequest({ id: '1' })
+    const res = mockResponse()
 
-    it('returns NOT_FOUND when no rows affected', async () => {
-      // Arrange
-      departmentRepository.delete.mockResolvedValue({ affected: 0, raw: [] })
-      const req = mockRequest({ id: '99' })
-      const res = mockResponse()
+    // Act
+    await controller.delete(req, res)
 
-      // Act
-      await controller.delete(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.CONFLICT)
+  })
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.NOT_FOUND,
-        'Department not found'
-      )
-    })
+  it('returns 500 on unexpected error', async () => {
+    // Arrange
+    mockService.delete.mockRejectedValue(new Error('DB failure'))
+    const req = mockRequest({ id: '1' })
+    const res = mockResponse()
 
-    it('returns CONFLICT on foreign key constraint error', async () => {
-      // Arrange
-      departmentRepository.delete.mockRejectedValue(new Error('foreign key constraint fails'))
-      const req = mockRequest({ id: '1' })
-      const res = mockResponse()
+    // Act
+    await controller.delete(req, res)
 
-      // Act
-      await controller.delete(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.CONFLICT,
-        'Cannot delete department: one or more users are assigned to it'
-      )
-    })
-
-    it('returns INTERNAL_SERVER_ERROR on unexpected repository error', async () => {
-      // Arrange
-      departmentRepository.delete.mockRejectedValue(new Error('unexpected db error'))
-      const req = mockRequest({ id: '1' })
-      const res = mockResponse()
-
-      // Act
-      await controller.delete(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res,
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Failed to delete department'
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
   })
 })

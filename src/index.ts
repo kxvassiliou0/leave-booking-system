@@ -13,6 +13,11 @@ import { LeaveRouter } from './routes/LeaveRouter.ts'
 import { LoginRouter } from './routes/LoginRouter.ts'
 import { UserRouter } from './routes/UserRouter.ts'
 import { Server } from './Server.ts'
+import { DepartmentService } from './services/DepartmentService.ts'
+import { JobRoleService } from './services/JobRoleService.ts'
+import { LeaveRequestService } from './services/LeaveRequestService.ts'
+import { LoginService } from './services/LoginService.ts'
+import { UserService } from './services/UserService.ts'
 import type { IRouter } from './types/IRouter.ts'
 
 const DEFAULT_PORT = 3000
@@ -21,25 +26,27 @@ const port = process.env.PORT ?? DEFAULT_PORT
 const routers: Array<IRouter> = [
   new LoginRouter(
     Router(),
-    new LoginController(AppDataSource.getRepository(User))
+    new LoginController(new LoginService(AppDataSource.getRepository(User)))
   ),
   new DepartmentRouter(
     Router(),
-    new DepartmentController(AppDataSource.getRepository(Department))
+    new DepartmentController(new DepartmentService(AppDataSource.getRepository(Department)))
   ),
   new JobRoleRouter(
     Router(),
-    new JobRoleController(AppDataSource.getRepository(JobRole))
+    new JobRoleController(new JobRoleService(AppDataSource.getRepository(JobRole)))
   ),
   new UserRouter(
     Router(),
-    new UserController(AppDataSource.getRepository(User))
+    new UserController(new UserService(AppDataSource.getRepository(User)))
   ),
   new LeaveRouter(
     Router(),
     new LeaveRequestController(
-      AppDataSource.getRepository(User),
-      AppDataSource.getRepository(LeaveRequest)
+      new LeaveRequestService(
+        AppDataSource.getRepository(User),
+        AppDataSource.getRepository(LeaveRequest)
+      )
     )
   ),
 ]

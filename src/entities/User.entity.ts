@@ -68,7 +68,7 @@ export class User {
   @IsPositive()
   jobRoleId!: number
 
-  @ManyToOne(() => User, (user: User) => user.subordinates, { nullable: true })
+  @ManyToOne(() => User, (user: User) => user.subordinates, { nullable: true, onDelete: 'SET NULL' })
   manager!: User | null
 
   @Column({ nullable: true })

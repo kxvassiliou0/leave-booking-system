@@ -1,1061 +1,377 @@
+import { mock, MockProxy } from 'jest-mock-extended'
 import { StatusCodes } from 'http-status-codes'
-import { mock } from 'jest-mock-extended'
-import type { Repository, SelectQueryBuilder } from 'typeorm'
+import { RoleType } from '../enums/index'
 import { LeaveRequestController } from './LeaveRequestController'
-import { LeaveRequest } from '../entities/LeaveRequest.entity'
-import { User } from '../entities/User.entity'
-import { LeaveStatus, LeaveType, RoleType } from '../enums/index'
-import { ResponseHandler } from '../helpers/ResponseHandler'
-import { makeAuthRequest, makeLeaveRequest, makeUser, mockResponse } from '../test/ObjectMother'
+import { AppError } from '../helpers/AppError'
+import type { ILeaveRequestService } from '../types/ILeaveRequestService'
+import { makeAuthRequest, mockResponse } from '../test/ObjectMother'
 
-jest.mock('../helpers/ResponseHandler')
-jest.mock('../helpers/Logger')
-jest.mock('class-validator', () => ({
-  ...jest.requireActual('class-validator'),
-  validate: jest.fn().mockResolvedValue([]),
-}))
+let mockService: MockProxy<ILeaveRequestService>
+let controller: LeaveRequestController
 
-// ── Setup ────────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  mockService = mock<ILeaveRequestService>()
+  controller = new LeaveRequestController(mockService)
+  jest.clearAllMocks()
+})
 
-describe('LeaveRequestController', () => {
-  let userRepo: ReturnType<typeof mock<Repository<User>>>
-  let leaveRepo: ReturnType<typeof mock<Repository<LeaveRequest>>>
-  let controller: LeaveRequestController
-  let qb: ReturnType<typeof mock<SelectQueryBuilder<LeaveRequest>>>
+const successResult = { message: 'ok', data: {} }
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-    userRepo = mock<Repository<User>>()
-    leaveRepo = mock<Repository<LeaveRequest>>()
-    controller = new LeaveRequestController(userRepo, leaveRepo)
+describe('LeaveRequestController.createLeaveRequest', () => {
+  it('returns 201 when service resolves successfully', async () => {
+    // Arrange
+    mockService.createLeaveRequest.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ body: { leave_type: 'Vacation', start_date: '2026-09-01', end_date: '2026-09-05' } })
+    const res = mockResponse()
 
-    qb = mock<SelectQueryBuilder<LeaveRequest>>()
-    qb.where.mockReturnValue(qb)
-    qb.andWhere.mockReturnValue(qb)
-    qb.getOne.mockResolvedValue(null)
-    leaveRepo.createQueryBuilder.mockReturnValue(qb)
-    ;(leaveRepo.create as jest.Mock).mockImplementation((data: Partial<LeaveRequest>) =>
-      Object.assign(new LeaveRequest(), data)
+    // Act
+    await controller.createLeaveRequest(req, res)
+
+    // Assert
+    expect(mockService.createLeaveRequest).toHaveBeenCalledWith(req.signedInUser?.token, req.body)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.CREATED)
+    expect(res.json).toHaveBeenCalledWith(successResult)
+  })
+
+  it('returns 400 when service throws AppError', async () => {
+    // Arrange
+    mockService.createLeaveRequest.mockRejectedValue(
+      new AppError('Invalid employee ID', StatusCodes.BAD_REQUEST)
     )
+    const req = makeAuthRequest({ body: {} })
+    const res = mockResponse()
+
+    // Act
+    await controller.createLeaveRequest(req, res)
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
   })
 
-  // ── createLeaveRequest ──────────────────────────────────────────────────────
+  it('returns 500 on unexpected error', async () => {
+    // Arrange
+    mockService.createLeaveRequest.mockRejectedValue(new Error('DB failure'))
+    const req = makeAuthRequest({ body: {} })
+    const res = mockResponse()
 
-  describe('createLeaveRequest', () => {
-    it('returns BAD_REQUEST when admin provides invalid employee_id', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        role: RoleType.Admin,
-        body: { employee_id: 'abc', start_date: '2026-09-01', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
+    // Act
+    await controller.createLeaveRequest(req, res)
 
-      // Act
-      await controller.createLeaveRequest(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
+describe('LeaveRequestController.deleteLeaveRequest', () => {
+  it('returns 200 when service resolves successfully', async () => {
+    // Arrange
+    mockService.deleteLeaveRequest.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ id: 4, body: { leave_request_id: 2 } })
+    const res = mockResponse()
 
-    it('returns BAD_REQUEST when non-admin has no id in token', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        id: 0,
-        role: RoleType.Employee,
-        body: { start_date: '2026-09-01', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
+    // Act
+    await controller.deleteLeaveRequest(req, res)
 
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
-
-    it('returns BAD_REQUEST when start_date is missing', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        body: { end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'start_date and end_date are required'
-      )
-    })
-
-    it('returns BAD_REQUEST when end_date is missing', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'start_date and end_date are required'
-      )
-    })
-
-    it('returns BAD_REQUEST when date format is invalid', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        body: { start_date: 'not-a-date', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid date format'
-      )
-    })
-
-    it('returns BAD_REQUEST when end_date is before start_date', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-10', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, expect.stringContaining('before the start date')
-      )
-    })
-
-    it('returns BAD_REQUEST when leave_type is missing', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', end_date: '2026-09-05' },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'leave_type is required'
-      )
-    })
-
-    it('returns BAD_REQUEST when leave_type is not valid', async () => {
-      // Arrange
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', end_date: '2026-09-05', leave_type: 'InvalidType' },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, expect.stringContaining('Invalid leave_type')
-      )
-    })
-
-    it('returns BAD_REQUEST when employee is not found', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
-
-    it('returns BAD_REQUEST when days exceed allowance', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ annualLeaveAllowance: 5 }))
-      leaveRepo.find.mockResolvedValue([makeLeaveRequest({ daysRequested: 4 })])
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Days requested exceed remaining balance'
-      )
-    })
-
-    it('returns CONFLICT when dates overlap with existing request', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ annualLeaveAllowance: 25 }))
-      leaveRepo.find.mockResolvedValue([])
-      qb.getOne.mockResolvedValue(makeLeaveRequest())
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.CONFLICT, 'Date range of request overlaps with existing request'
-      )
-    })
-
-    it('returns CREATED on happy path', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ annualLeaveAllowance: 25 }))
-      leaveRepo.find.mockResolvedValue([])
-      qb.getOne.mockResolvedValue(null)
-      const saved = makeLeaveRequest({ status: LeaveStatus.Pending })
-      leaveRepo.save.mockResolvedValue(saved)
-      const req = makeAuthRequest({
-        body: { start_date: '2026-09-01', end_date: '2026-09-05', leave_type: LeaveType.Vacation },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.createLeaveRequest(req, res)
-
-      // Assert
-      expect(leaveRepo.save).toHaveBeenCalled()
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.CREATED)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Leave request has been submitted for review' })
-      )
-    })
+    // Assert
+    expect(mockService.deleteLeaveRequest).toHaveBeenCalledWith(req.signedInUser?.token, req.body)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  // ── deleteLeaveRequest ──────────────────────────────────────────────────────
+  it('returns 403 when service throws FORBIDDEN AppError', async () => {
+    // Arrange
+    mockService.deleteLeaveRequest.mockRejectedValue(
+      new AppError('Unauthorised', StatusCodes.FORBIDDEN)
+    )
+    const req = makeAuthRequest({ id: 1, body: { leave_request_id: 2 } })
+    const res = mockResponse()
 
-  describe('deleteLeaveRequest', () => {
-    it('returns BAD_REQUEST when employee_id is invalid', async () => {
-      // Arrange
-      const req = makeAuthRequest({ body: { employee_id: 'abc', leave_request_id: 1 } })
-      const res = mockResponse()
+    // Act
+    await controller.deleteLeaveRequest(req, res)
 
-      // Act
-      await controller.deleteLeaveRequest(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
+describe('LeaveRequestController.approveLeaveRequest', () => {
+  it('returns 200 when service resolves successfully', async () => {
+    // Arrange
+    mockService.approveLeaveRequest.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Manager, body: { leave_request_id: 6 } })
+    const res = mockResponse()
 
-    it('returns BAD_REQUEST when leave_request_id is invalid', async () => {
-      // Arrange
-      const req = makeAuthRequest({ body: { employee_id: 1, leave_request_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.approveLeaveRequest(req, res)
 
-      // Act
-      await controller.deleteLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns BAD_REQUEST when leave request is not found', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({ body: { employee_id: 1, leave_request_id: 99 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.deleteLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns FORBIDDEN when leave request belongs to different employee', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest({ userId: 2 }))
-      const req = makeAuthRequest({ body: { employee_id: 1, leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.deleteLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.FORBIDDEN, 'Unauthorised'
-      )
-    })
-
-    it('returns OK and sets status to Cancelled on happy path', async () => {
-      // Arrange
-      const lr = makeLeaveRequest({ userId: 1 })
-      leaveRepo.findOne.mockResolvedValue(lr)
-      const cancelled = makeLeaveRequest({ status: LeaveStatus.Cancelled, userId: 1 })
-      leaveRepo.save.mockResolvedValue(cancelled)
-      const req = makeAuthRequest({ body: { employee_id: 1, leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.deleteLeaveRequest(req, res)
-
-      // Assert
-      expect(leaveRepo.save).toHaveBeenCalled()
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Leave request has been cancelled' })
-      )
-    })
+    // Assert
+    expect(mockService.approveLeaveRequest).toHaveBeenCalledWith(req.signedInUser?.token, req.body)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  // ── approveLeaveRequest ─────────────────────────────────────────────────────
+  it('returns 403 when service throws FORBIDDEN AppError', async () => {
+    // Arrange
+    mockService.approveLeaveRequest.mockRejectedValue(
+      new AppError('You can only approve leave requests for your direct reports', StatusCodes.FORBIDDEN)
+    )
+    const req = makeAuthRequest({ role: RoleType.Manager, body: { leave_request_id: 99 } })
+    const res = mockResponse()
 
-  describe('approveLeaveRequest', () => {
-    it('returns BAD_REQUEST when leave_request_id is invalid', async () => {
-      // Arrange
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.approveLeaveRequest(req, res)
 
-      // Act
-      await controller.approveLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns BAD_REQUEST when leave request is not found', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 99 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.approveLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns BAD_REQUEST when leave request is not Pending', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest({ status: LeaveStatus.Approved }))
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.approveLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns FORBIDDEN when manager tries to approve outside their team', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest({ userId: 5 }))
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 5, managerId: 99 }))
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, body: { leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.approveLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.FORBIDDEN, 'You can only approve leave requests for your direct reports'
-      )
-    })
-
-    it('returns OK on happy path (admin)', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest())
-      leaveRepo.save.mockResolvedValue(makeLeaveRequest({ status: LeaveStatus.Approved }))
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.approveLeaveRequest(req, res)
-
-      // Assert
-      expect(leaveRepo.save).toHaveBeenCalled()
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('approved') })
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
   })
 
-  // ── rejectLeaveRequest ──────────────────────────────────────────────────────
+  it('returns 500 on unexpected error', async () => {
+    // Arrange
+    mockService.approveLeaveRequest.mockRejectedValue(new Error('DB failure'))
+    const req = makeAuthRequest({ body: {} })
+    const res = mockResponse()
 
-  describe('rejectLeaveRequest', () => {
-    it('returns BAD_REQUEST when leave_request_id is invalid', async () => {
-      // Arrange
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.approveLeaveRequest(req, res)
 
-      // Act
-      await controller.rejectLeaveRequest(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
+describe('LeaveRequestController.rejectLeaveRequest', () => {
+  it('returns 200 when service resolves successfully', async () => {
+    // Arrange
+    mockService.rejectLeaveRequest.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Manager, body: { leave_request_id: 2 } })
+    const res = mockResponse()
 
-    it('returns BAD_REQUEST when leave request is not found', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 99 } })
-      const res = mockResponse()
+    // Act
+    await controller.rejectLeaveRequest(req, res)
 
-      // Act
-      await controller.rejectLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns BAD_REQUEST when leave request is not Pending', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest({ status: LeaveStatus.Rejected }))
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.rejectLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid leave request ID'
-      )
-    })
-
-    it('returns FORBIDDEN when manager tries to reject outside their team', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest({ userId: 5 }))
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 5, managerId: 99 }))
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, body: { leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.rejectLeaveRequest(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.FORBIDDEN, 'You can only reject leave requests for your direct reports'
-      )
-    })
-
-    it('returns OK on happy path (admin)', async () => {
-      // Arrange
-      leaveRepo.findOne.mockResolvedValue(makeLeaveRequest())
-      leaveRepo.save.mockResolvedValue(makeLeaveRequest({ status: LeaveStatus.Rejected }))
-      const req = makeAuthRequest({ role: RoleType.Admin, body: { leave_request_id: 1 } })
-      const res = mockResponse()
-
-      // Act
-      await controller.rejectLeaveRequest(req, res)
-
-      // Assert
-      expect(leaveRepo.save).toHaveBeenCalled()
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('rejected') })
-      )
-    })
+    // Assert
+    expect(mockService.rejectLeaveRequest).toHaveBeenCalledWith(req.signedInUser?.token, req.body)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  // ── getLeaveRequestsByEmployee ──────────────────────────────────────────────
+  it('returns 403 when manager tries to reject outside their team', async () => {
+    // Arrange
+    mockService.rejectLeaveRequest.mockRejectedValue(
+      new AppError('You can only reject leave requests for your direct reports', StatusCodes.FORBIDDEN)
+    )
+    const req = makeAuthRequest({ role: RoleType.Manager, body: { leave_request_id: 99 } })
+    const res = mockResponse()
 
-  describe('getLeaveRequestsByEmployee', () => {
-    it('returns BAD_REQUEST on invalid employee_id', async () => {
-      // Arrange
-      const req = makeAuthRequest({ params: { employee_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.rejectLeaveRequest(req, res)
 
-      // Act
-      await controller.getLeaveRequestsByEmployee(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
+describe('LeaveRequestController.getLeaveRequestsByEmployee', () => {
+  it('returns 400 for non-numeric employee_id', async () => {
+    // Arrange
+    const req = makeAuthRequest({ params: { employee_id: 'abc' } })
+    const res = mockResponse()
 
-    it('returns FORBIDDEN when employee tries to view another employee', async () => {
-      // Arrange
-      const req = makeAuthRequest({ id: 1, role: RoleType.Employee, params: { employee_id: '7' } })
-      const res = mockResponse()
+    // Act
+    await controller.getLeaveRequestsByEmployee(req, res)
 
-      // Act
-      await controller.getLeaveRequestsByEmployee(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.FORBIDDEN, 'You are not authorised to view leave requests for this employee'
-      )
-    })
-
-    it('returns BAD_REQUEST when employee is not found', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({ id: 1, role: RoleType.Employee, params: { employee_id: '1' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getLeaveRequestsByEmployee(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
-
-    it('returns OK with formatted leave list', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser())
-      const leaves = [makeLeaveRequest()]
-      leaveRepo.find.mockResolvedValue(leaves)
-      const req = makeAuthRequest({ id: 1, role: RoleType.Employee, params: { employee_id: '1' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getLeaveRequestsByEmployee(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('employee_id 1') })
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
+    expect(mockService.getLeaveRequestsByEmployee).not.toHaveBeenCalled()
   })
 
-  // ── getRemainingLeave ───────────────────────────────────────────────────────
+  it('returns 200 with leave requests from service', async () => {
+    // Arrange
+    mockService.getLeaveRequestsByEmployee.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ params: { employee_id: '4' } })
+    const res = mockResponse()
 
-  describe('getRemainingLeave', () => {
-    it('returns BAD_REQUEST on invalid employee_id', async () => {
-      // Arrange
-      const req = makeAuthRequest({ params: { employee_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.getLeaveRequestsByEmployee(req, res)
 
-      // Act
-      await controller.getRemainingLeave(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid employee ID'
-      )
-    })
-
-    it('returns FORBIDDEN when employee tries to view another employee', async () => {
-      // Arrange
-      const req = makeAuthRequest({ id: 1, role: RoleType.Employee, params: { employee_id: '9' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getRemainingLeave(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.FORBIDDEN, 'You are not authorised to view leave balance for this employee'
-      )
-    })
-
-    it('returns OK with leave balance data', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ annualLeaveAllowance: 25 }))
-      leaveRepo.find.mockResolvedValue([makeLeaveRequest({ daysRequested: 5, status: LeaveStatus.Approved })])
-      const req = makeAuthRequest({ id: 1, role: RoleType.Employee, params: { employee_id: '1' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getRemainingLeave(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            annual_allowance: 25,
-            days_remaining: expect.any(Number),
-          }),
-        })
-      )
-    })
+    // Assert
+    expect(mockService.getLeaveRequestsByEmployee).toHaveBeenCalledWith(req.signedInUser?.token, 4)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  // ── getPendingRequestsByManager ─────────────────────────────────────────────
+  it('returns 403 when service throws FORBIDDEN AppError', async () => {
+    // Arrange
+    mockService.getLeaveRequestsByEmployee.mockRejectedValue(
+      new AppError('You are not authorised to view leave requests for this employee', StatusCodes.FORBIDDEN)
+    )
+    const req = makeAuthRequest({ params: { employee_id: '99' } })
+    const res = mockResponse()
 
-  describe('getPendingRequestsByManager', () => {
-    it('returns BAD_REQUEST when admin provides invalid manager_id', async () => {
-      // Arrange
-      const req = makeAuthRequest({ role: RoleType.Admin, params: { manager_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.getLeaveRequestsByEmployee(req, res)
 
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid manager ID'
-      )
-    })
+describe('LeaveRequestController.getRemainingLeave', () => {
+  it('returns 400 for non-numeric employee_id', async () => {
+    // Arrange
+    const req = makeAuthRequest({ params: { employee_id: 'abc' } })
+    const res = mockResponse()
 
-    it('returns BAD_REQUEST when manager is not found', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '2' } })
-      const res = mockResponse()
+    // Act
+    await controller.getRemainingLeave(req, res)
 
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid manager ID'
-      )
-    })
-
-    it('returns OK with empty array when manager has no team', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      userRepo.find.mockResolvedValue([])
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '2' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: [] }))
-    })
-
-    it('returns OK with pending requests for the team', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      userRepo.find.mockResolvedValue([makeUser({ id: 3, managerId: 2 })])
-      const pending = makeLeaveRequest({ userId: 3, status: LeaveStatus.Pending })
-      leaveRepo.find.mockResolvedValue([pending])
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '2' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.arrayContaining([expect.objectContaining({ employee_id: 3 })]) })
-      )
-    })
-
-    it('returns BAD_REQUEST when from date is invalid', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '2' }, query: { from: 'not-a-date' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid from date format'
-      )
-    })
-
-    it('returns BAD_REQUEST when to date is invalid', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '2' }, query: { to: 'bad' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid to date format'
-      )
-    })
-
-    it('returns BAD_REQUEST when from > to', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      const req = makeAuthRequest({
-        id: 2, role: RoleType.Manager, params: { manager_id: '2' },
-        query: { from: '2025-06-01', to: '2025-05-01' },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'from date must not be after to date'
-      )
-    })
-
-    it('returns OK filtered by valid from/to range', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      userRepo.find.mockResolvedValue([makeUser({ id: 3, managerId: 2 })])
-      const pending = makeLeaveRequest({ userId: 3, status: LeaveStatus.Pending })
-      leaveRepo.find.mockResolvedValue([pending])
-      const req = makeAuthRequest({
-        id: 2, role: RoleType.Manager, params: { manager_id: '2' },
-        query: { from: '2025-05-01', to: '2025-05-31' },
-      })
-      const res = mockResponse()
-
-      // Act
-      await controller.getPendingRequestsByManager(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(leaveRepo.find).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ endDate: expect.anything(), startDate: expect.anything() }) })
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
+    expect(mockService.getRemainingLeave).not.toHaveBeenCalled()
   })
 
-  // ── getAllLeaveRequests ──────────────────────────────────────────────────────
+  it('returns 200 with remaining leave data from service', async () => {
+    // Arrange
+    mockService.getRemainingLeave.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ params: { employee_id: '4' } })
+    const res = mockResponse()
 
-  describe('getAllLeaveRequests', () => {
-    it('returns team requests for manager (ignores query params)', async () => {
-      // Arrange
-      userRepo.find.mockResolvedValue([makeUser({ id: 3, managerId: 2 })])
-      const requests = [makeLeaveRequest({ userId: 3 })]
-      leaveRepo.find.mockResolvedValue(requests)
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, query: { employee_id: '3' } })
-      const res = mockResponse()
+    // Act
+    await controller.getRemainingLeave(req, res)
 
-      // Act
-      await controller.getAllLeaveRequests(req, res)
+    // Assert
+    expect(mockService.getRemainingLeave).toHaveBeenCalledWith(req.signedInUser?.token, 4)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
+})
 
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Leave requests for your team' })
-      )
-    })
+describe('LeaveRequestController.getPendingRequestsByManager', () => {
+  it('returns 400 for non-numeric manager_id', async () => {
+    // Arrange
+    const req = makeAuthRequest({ params: { manager_id: 'abc' } })
+    const res = mockResponse()
 
-    it('returns BAD_REQUEST (admin) when both employee_id and manager_id are provided', async () => {
-      // Arrange
-      const req = makeAuthRequest({ role: RoleType.Admin, query: { employee_id: '1', manager_id: '2' } })
-      const res = mockResponse()
+    // Act
+    await controller.getPendingRequestsByManager(req, res)
 
-      // Act
-      await controller.getAllLeaveRequests(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Provide either employee_id or manager_id, not both'
-      )
-    })
-
-    it('returns filtered requests by employee_id (admin)', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser())
-      const requests = [makeLeaveRequest()]
-      leaveRepo.find.mockResolvedValue(requests)
-      const req = makeAuthRequest({ role: RoleType.Admin, query: { employee_id: '1' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getAllLeaveRequests(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('employee_id 1') })
-      )
-    })
-
-    it('returns filtered requests by manager_id (admin)', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      userRepo.find.mockResolvedValue([makeUser({ id: 3, managerId: 2 })])
-      leaveRepo.find.mockResolvedValue([makeLeaveRequest({ userId: 3 })])
-      const req = makeAuthRequest({ role: RoleType.Admin, query: { manager_id: '2' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getAllLeaveRequests(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('manager_id 2') })
-      )
-    })
-
-    it('returns all requests when admin provides no filter', async () => {
-      // Arrange
-      leaveRepo.find.mockResolvedValue([makeLeaveRequest(), makeLeaveRequest({ id: 2, userId: 2 })])
-      const req = makeAuthRequest({ role: RoleType.Admin })
-      const res = mockResponse()
-
-      // Act
-      await controller.getAllLeaveRequests(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'All leave requests' })
-      )
-    })
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
+    expect(mockService.getPendingRequestsByManager).not.toHaveBeenCalled()
   })
 
-  // ── getTeamUtilisationReport ─────────────────────────────────────────────────
+  it('returns 200 with pending requests from service', async () => {
+    // Arrange
+    mockService.getPendingRequestsByManager.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Manager, params: { manager_id: '2' } })
+    const res = mockResponse()
 
-  describe('getTeamUtilisationReport', () => {
-    it('returns BAD_REQUEST for invalid manager_id', async () => {
-      // Arrange
-      const req = makeAuthRequest({ role: RoleType.Admin, params: { manager_id: 'abc' } })
-      const res = mockResponse()
+    // Act
+    await controller.getPendingRequestsByManager(req, res)
 
-      // Act
-      await controller.getTeamUtilisationReport(req, res)
+    // Assert
+    expect(mockService.getPendingRequestsByManager).toHaveBeenCalledWith(
+      req.signedInUser?.token,
+      2,
+      expect.any(Object)
+    )
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid manager ID'
-      )
-    })
+describe('LeaveRequestController.getAllLeaveRequests', () => {
+  it('returns 200 with all leave requests from service', async () => {
+    // Arrange
+    mockService.getAllLeaveRequests.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Admin })
+    const res = mockResponse()
 
-    it("returns FORBIDDEN when manager requests another manager's team", async () => {
-      // Arrange
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '99' } })
-      const res = mockResponse()
+    // Act
+    await controller.getAllLeaveRequests(req, res)
 
-      // Act
-      await controller.getTeamUtilisationReport(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.FORBIDDEN, 'You can only view utilisation for your own team'
-      )
-    })
-
-    it('returns BAD_REQUEST when manager not found', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(null)
-      const req = makeAuthRequest({ role: RoleType.Admin, params: { manager_id: '5' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getTeamUtilisationReport(req, res)
-
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid manager ID'
-      )
-    })
-
-    it('returns OK with empty array when manager has no team', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      userRepo.find.mockResolvedValue([])
-      const req = makeAuthRequest({ role: RoleType.Admin, params: { manager_id: '2' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getTeamUtilisationReport(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: [] }))
-    })
-
-    it('returns OK with utilisation stats for each team member (admin)', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      const member = makeUser({ id: 3, firstName: 'Bob', lastName: 'Jones', managerId: 2, annualLeaveAllowance: 25 })
-      userRepo.find.mockResolvedValue([member])
-      const approvedRequest = makeLeaveRequest({ userId: 3, status: LeaveStatus.Approved, daysRequested: 8 })
-      leaveRepo.find.mockResolvedValue([approvedRequest])
-      const req = makeAuthRequest({ role: RoleType.Admin, params: { manager_id: '2' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getTeamUtilisationReport(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.arrayContaining([
-            expect.objectContaining({
-              employee_id: 3,
-              name: 'Bob Jones',
-              annual_allowance: 25,
-              days_used: 8,
-              days_remaining: 17,
-              utilisation_percent: 32,
-            }),
-          ]),
-        })
-      )
-    })
-
-    it('returns OK when manager requests their own team', async () => {
-      // Arrange
-      userRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-      userRepo.find.mockResolvedValue([makeUser({ id: 3, managerId: 2 })])
-      leaveRepo.find.mockResolvedValue([])
-      const req = makeAuthRequest({ id: 2, role: RoleType.Manager, params: { manager_id: '2' } })
-      const res = mockResponse()
-
-      // Act
-      await controller.getTeamUtilisationReport(req, res)
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-    })
+    // Assert
+    expect(mockService.getAllLeaveRequests).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  // ── getStatusBreakdownReport ──────────────────────────────────────────────────
+  it('returns 500 on unexpected error', async () => {
+    // Arrange
+    mockService.getAllLeaveRequests.mockRejectedValue(new Error('DB failure'))
+    const req = makeAuthRequest({ role: RoleType.Admin })
+    const res = mockResponse()
 
-  describe('getStatusBreakdownReport', () => {
-    it('returns BAD_REQUEST when department_id is invalid', async () => {
-      // Arrange
-      const req = makeAuthRequest({ role: RoleType.Admin, query: { department_id: 'xyz' } })
-      const res = mockResponse()
+    // Act
+    await controller.getAllLeaveRequests(req, res)
 
-      // Act
-      await controller.getStatusBreakdownReport(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
+  })
+})
 
-      // Assert
-      expect(ResponseHandler.sendErrorResponse).toHaveBeenCalledWith(
-        res, StatusCodes.BAD_REQUEST, 'Invalid department_id'
-      )
-    })
+describe('LeaveRequestController.getTeamUtilisationReport', () => {
+  it('returns 400 for non-numeric manager_id', async () => {
+    // Arrange
+    const req = makeAuthRequest({ params: { manager_id: 'abc' } })
+    const res = mockResponse()
 
-    it('returns OK with zero counts when department has no users', async () => {
-      // Arrange
-      userRepo.find.mockResolvedValue([])
-      const req = makeAuthRequest({ role: RoleType.Admin, query: { department_id: '99' } })
-      const res = mockResponse()
+    // Act
+    await controller.getTeamUtilisationReport(req, res)
 
-      // Act
-      await controller.getStatusBreakdownReport(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
+    expect(mockService.getTeamUtilisationReport).not.toHaveBeenCalled()
+  })
 
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            scope: 'department 99',
-            totals: { Pending: 0, Approved: 0, Rejected: 0, Cancelled: 0 },
-          }),
-        })
-      )
-    })
+  it('returns 200 with utilisation report from service', async () => {
+    // Arrange
+    mockService.getTeamUtilisationReport.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Manager, id: 2, params: { manager_id: '2' } })
+    const res = mockResponse()
 
-    it('returns OK company-wide breakdown with correct counts', async () => {
-      // Arrange
-      leaveRepo.find.mockResolvedValue([
-        makeLeaveRequest({ status: LeaveStatus.Approved }),
-        makeLeaveRequest({ id: 2, status: LeaveStatus.Approved }),
-        makeLeaveRequest({ id: 3, status: LeaveStatus.Pending }),
-        makeLeaveRequest({ id: 4, status: LeaveStatus.Rejected }),
-        makeLeaveRequest({ id: 5, status: LeaveStatus.Cancelled }),
-      ])
-      const req = makeAuthRequest({ role: RoleType.Admin })
-      const res = mockResponse()
+    // Act
+    await controller.getTeamUtilisationReport(req, res)
 
-      // Act
-      await controller.getStatusBreakdownReport(req, res)
+    // Assert
+    expect(mockService.getTeamUtilisationReport).toHaveBeenCalledWith(req.signedInUser?.token, 2)
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
 
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            scope: 'company-wide',
-            totals: { Pending: 1, Approved: 2, Rejected: 1, Cancelled: 1 },
-          }),
-        })
-      )
-    })
+  it('returns 403 when manager tries to view another team', async () => {
+    // Arrange
+    mockService.getTeamUtilisationReport.mockRejectedValue(
+      new AppError('You can only view utilisation for your own team', StatusCodes.FORBIDDEN)
+    )
+    const req = makeAuthRequest({ role: RoleType.Manager, id: 2, params: { manager_id: '99' } })
+    const res = mockResponse()
 
-    it('returns OK scoped to a department with correct counts', async () => {
-      // Arrange
-      userRepo.find.mockResolvedValue([makeUser({ id: 5, departmentId: 3 })])
-      leaveRepo.find.mockResolvedValue([
-        makeLeaveRequest({ userId: 5, status: LeaveStatus.Approved }),
-        makeLeaveRequest({ id: 2, userId: 5, status: LeaveStatus.Pending }),
-      ])
-      const req = makeAuthRequest({ role: RoleType.Admin, query: { department_id: '3' } })
-      const res = mockResponse()
+    // Act
+    await controller.getTeamUtilisationReport(req, res)
 
-      // Act
-      await controller.getStatusBreakdownReport(req, res)
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
+  })
+})
 
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            scope: 'department 3',
-            totals: expect.objectContaining({ Approved: 1, Pending: 1 }),
-          }),
-        })
-      )
-    })
+describe('LeaveRequestController.getStatusBreakdownReport', () => {
+  it('returns 200 with status breakdown from service', async () => {
+    // Arrange
+    mockService.getStatusBreakdownReport.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Admin })
+    const res = mockResponse()
 
-    it('includes business_year in the response', async () => {
-      // Arrange
-      leaveRepo.find.mockResolvedValue([])
-      const req = makeAuthRequest({ role: RoleType.Admin })
-      const res = mockResponse()
+    // Act
+    await controller.getStatusBreakdownReport(req, res)
 
-      // Act
-      await controller.getStatusBreakdownReport(req, res)
+    // Assert
+    expect(mockService.getStatusBreakdownReport).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
 
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            business_year: expect.stringMatching(/^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/),
-          }),
-        })
-      )
-    })
+  it('returns 500 on unexpected error', async () => {
+    // Arrange
+    mockService.getStatusBreakdownReport.mockRejectedValue(new Error('DB failure'))
+    const req = makeAuthRequest({ role: RoleType.Admin })
+    const res = mockResponse()
+
+    // Act
+    await controller.getStatusBreakdownReport(req, res)
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
   })
 })

@@ -12,10 +12,10 @@
   ],
   "item": [
     {
-      "name": "Authentication",
+      "name": "/api/login",
       "item": [
         {
-          "name": "Login as Admin",
+          "name": "POST /api/login - Admin",
           "event": [
             {
               "listen": "test",
@@ -29,12 +29,7 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/login",
             "body": {
               "mode": "raw",
@@ -43,7 +38,7 @@
           }
         },
         {
-          "name": "Login as Manager",
+          "name": "POST /api/login - Bob (Manager #2, Team: #4 #5)",
           "event": [
             {
               "listen": "test",
@@ -57,12 +52,7 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/login",
             "body": {
               "mode": "raw",
@@ -71,7 +61,7 @@
           }
         },
         {
-          "name": "Login as Employee",
+          "name": "POST /api/login - Carol (Manager #3, Team: #6)",
           "event": [
             {
               "listen": "test",
@@ -85,149 +75,73 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"david.okafor@company.com\",\n  \"password\": \"Password123!\"\n}"
+              "raw": "{\n  \"email\": \"carol.reeves@company.com\",\n  \"password\": \"Password123!\"\n}"
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Job Roles",
-      "item": [
-        {
-          "name": "Get All Job Roles",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/job-roles"
-          }
         },
         {
-          "name": "Get Job Role by ID",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/job-roles/1"
-          }
-        },
-        {
-          "name": "Create Job Role",
+          "name": "POST /api/login - David (Employee #4, Manager #2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"jwt_token\", pm.response.text())"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/job-roles",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Lead Engineer\"\n}"
+              "raw": "{\n  \"email\": \"david.jones@company.com\",\n  \"password\": \"Password123!\"\n}"
             }
           }
         },
         {
-          "name": "Update Job Role",
-          "request": {
-            "method": "PATCH",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "name": "POST /api/login - Eve (Employee #5, Manager #2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"jwt_token\", pm.response.text())"
+                ]
               }
-            ],
-            "url": "{{baseUrl}}/job-roles/1",
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Senior Contractor\"\n}"
+              "raw": "{\n  \"email\": \"eve.knowles@company.com\",\n  \"password\": \"Password123!\"\n}"
             }
-          }
-        },
-        {
-          "name": "Delete Job Role",
-          "request": {
-            "method": "DELETE",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/job-roles/1"
           }
         }
       ]
     },
     {
-      "name": "Users",
+      "name": "/api/users",
       "item": [
         {
-          "name": "Get All Users",
+          "name": "GET /api/users",
           "request": {
             "method": "GET",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
             "header": [],
@@ -235,17 +149,13 @@
           }
         },
         {
-          "name": "Get User by ID",
+          "name": "GET /api/users/4",
           "request": {
             "method": "GET",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
             "header": [],
@@ -253,25 +163,16 @@
           }
         },
         {
-          "name": "Create User",
+          "name": "POST /api/users",
           "request": {
             "method": "POST",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/users",
             "body": {
               "mode": "raw",
@@ -280,25 +181,16 @@
           }
         },
         {
-          "name": "Update User",
+          "name": "PATCH /api/users/4",
           "request": {
             "method": "PATCH",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/users/4",
             "body": {
               "mode": "raw",
@@ -307,17 +199,13 @@
           }
         },
         {
-          "name": "Delete User",
+          "name": "DELETE /api/users/7",
           "request": {
             "method": "DELETE",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
             "header": [],
@@ -327,396 +215,328 @@
       ]
     },
     {
-      "name": "Leave Requests",
+      "name": "/api/job-roles",
       "item": [
         {
-          "name": "Request Leave",
+          "name": "GET /api/job-roles",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/job-roles"
+          }
+        },
+        {
+          "name": "GET /api/job-roles/1",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/job-roles/1"
+          }
+        },
+        {
+          "name": "POST /api/job-roles",
           "request": {
             "method": "POST",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/leave-requests",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/job-roles",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2026-09-05\"\n}"
+              "raw": "{\n  \"name\": \"Lead Engineer\"\n}"
             }
           }
         },
         {
-          "name": "Cancel Leave Request",
+          "name": "PATCH /api/job-roles/1",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/job-roles/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Senior Contractor\"\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/job-roles/:id",
           "request": {
             "method": "DELETE",
             "auth": {
               "type": "bearer",
               "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/job-roles/6",
+            "description": "Run POST /api/job-roles first - this deletes the newly created role (id 6)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "/api/departments",
+      "item": [
+        {
+          "name": "GET /api/departments",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/departments"
+          }
+        },
+        {
+          "name": "GET /api/departments/1",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/departments/1"
+          }
+        },
+        {
+          "name": "POST /api/departments",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/departments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Legal\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/departments/1",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/departments/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Software Engineering\"\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/departments/:id",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/departments/5",
+            "description": "Run POST /api/departments first - this deletes the newly created department (id 5)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "/api/leave-requests",
+      "item": [
+        {
+          "name": "GET /api/leave-requests (Admin - all)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leave-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["leave-requests"],
+              "query": [
                 {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
+                  "key": "employee_id",
+                  "value": "4",
+                  "disabled": true,
+                  "description": "Filter by employee - David Jones"
+                },
+                {
+                  "key": "manager_id",
+                  "value": "2",
+                  "disabled": true,
+                  "description": "Filter by manager's team - Bob Mitchell"
                 }
               ]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "description": "Admin only. Returns all leave requests. Use employee_id or manager_id query param to filter (not both)."
+          }
+        },
+        {
+          "name": "POST /api/leave-requests",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"employee_id\": 5,\n  \"leave_request_id\": 2\n}"
+              "raw": "{\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2027-09-01\",\n  \"end_date\": \"2027-09-05\"\n}"
             }
           }
         },
         {
-          "name": "Approve Leave Request",
+          "name": "DELETE /api/leave-requests",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+              ]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/leave-requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leave_request_id\": 2\n}",
+              "description": "Cancels David Jones's pending sick leave (id 2) - use David's JWT"
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/leave-requests/approve",
           "request": {
             "method": "PATCH",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests/approve",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"leave_request_id\": 2,\n  \"reason\": \"Approved - enjoy your time off!\"\n}"
+              "raw": "{\n  \"leave_request_id\": 6,\n  \"reason\": \"Approved - enjoy your time off!\"\n}",
+              "description": "Bob Mitchell (manager id 2) approves Eve Knowles's pending vacation (id 6) - use Manager JWT"
             }
           }
         },
         {
-          "name": "Reject Leave Request",
+          "name": "PATCH /api/leave-requests/reject",
           "request": {
             "method": "PATCH",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/leave-requests/reject",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"leave_request_id\": 6,\n  \"reason\": \"Team at capacity during this period.\"\n}"
+              "raw": "{\n  \"leave_request_id\": 2,\n  \"reason\": \"Team at capacity during this period.\"\n}",
+              "description": "Bob Mitchell (manager id 2) rejects David Jones's pending sick leave (id 2) - use Manager JWT"
             }
           }
         },
         {
-          "name": "View All Leave Requests (Company-wide)",
+          "name": "GET /api/leave-requests/status/4",
           "request": {
             "method": "GET",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests"
+            "url": "{{baseUrl}}/leave-requests/status/4",
+            "description": "David Jones's (employee id 4) leave requests"
           }
         },
         {
-          "name": "View All Leave Requests (by Employee)",
+          "name": "GET /api/leave-requests/remaining/4",
           "request": {
             "method": "GET",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests?employee_id=4"
+            "url": "{{baseUrl}}/leave-requests/remaining/4",
+            "description": "David Jones's (employee id 4) remaining leave allowance"
           }
         },
         {
-          "name": "View All Leave Requests (by Manager's Team)",
+          "name": "GET /api/leave-requests/pending/manager/2",
           "request": {
             "method": "GET",
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{jwt_token}}", "type": "string" }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests?manager_id=2"
+            "url": "{{baseUrl}}/leave-requests/pending/manager/2",
+            "description": "Bob Mitchell's (manager id 2) team pending requests - use Manager JWT"
           }
-        },
-        {
-          "name": "View Pending Requests for Manager's Team",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/pending/manager/2"
-          }
-        },
-        {
-          "name": "View Leave Status by Employee",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/status/4"
-          }
-        },
-        {
-          "name": "View Remaining Leave",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/remaining/4"
-          }
-        },
-        {
-          "name": "Reports",
-          "item": [
-            {
-              "name": "Team Utilisation \u2014 Admin (any manager)",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/3",
-                "description": "Admin views team utilisation for manager_id 3"
-              }
-            },
-            {
-              "name": "Team Utilisation \u2014 Manager (own team)",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/3",
-                "description": "Manager with id 3 views their own team utilisation \u2014 use a Manager JWT"
-              }
-            },
-            {
-              "name": "Team Utilisation \u2014 Manager (other team \u2192 403)",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/99",
-                "description": "Manager tries to view another manager's team \u2014 expects 403"
-              }
-            },
-            {
-              "name": "Status Breakdown \u2014 Admin (company-wide)",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/reports/status-breakdown",
-                "description": "Admin gets company-wide status breakdown for the current business year"
-              }
-            },
-            {
-              "name": "Status Breakdown \u2014 Admin (by department)",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/reports/status-breakdown?department_id=1",
-                "description": "Admin gets status breakdown scoped to department 1"
-              }
-            },
-            {
-              "name": "Status Breakdown \u2014 Manager (\u2192 403)",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/reports/status-breakdown",
-                "description": "Manager tries to access admin-only endpoint \u2014 expects 403 \u2014 use a Manager JWT"
-              }
-            },
-            {
-              "name": "Pending Requests with Date Range Filter",
-              "request": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_token}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/leave-requests/pending/manager/3?from=2025-05-01&to=2025-05-31",
-                "description": "Manager/Admin gets pending requests that overlap the given date range"
-              }
-            }
-          ]
         }
       ]
     }

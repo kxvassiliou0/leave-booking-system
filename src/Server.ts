@@ -40,8 +40,22 @@ export class Server {
         Logger.info(message.trim())
       },
     }
-    this.app.use(express.json())
+    this.app.use(this.corsMiddleware())
+    this.app.use(express.json({ limit: '10kb' }))
     this.app.use(morgan('combined', { stream: morganStream }))
+  }
+
+  private corsMiddleware(): express.RequestHandler {
+    return (req: Request, res: Response, next: express.NextFunction): void => {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(204)
+        return
+      }
+      next()
+    }
   }
 
   private initialiseRoutes(): void {

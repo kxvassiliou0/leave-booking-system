@@ -41,7 +41,7 @@ export class LeaveRequest {
   @CreateDateColumn()
   createdAt!: Date
 
-  @ManyToOne(() => User, (user: User) => user.leaveRequests)
+  @ManyToOne(() => User, (user: User) => user.leaveRequests, { onDelete: 'CASCADE' })
   user!: User
 
   @Column()
@@ -51,6 +51,7 @@ export class LeaveRequest {
 
   @ManyToOne(() => User, (user: User) => user.reviewedLeaveRequests, {
     nullable: true,
+    onDelete: 'SET NULL',
   })
   reviewedBy!: User | null
 
