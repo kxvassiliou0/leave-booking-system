@@ -3,3 +3,4 @@ node_modules
 logs/
 DOCUMENTATION.md
 coverage/
+.DS_Store

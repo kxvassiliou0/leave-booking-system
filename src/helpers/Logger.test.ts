@@ -4,9 +4,9 @@ const mockLoggerInstance = {
   warn: jest.fn(),
   debug: jest.fn(),
   verbose: jest.fn(),
-}
+};
 
-jest.mock('winston', () => ({
+jest.mock("winston", () => ({
   createLogger: jest.fn(() => mockLoggerInstance),
   format: {
     combine: jest.fn().mockReturnValue({}),
@@ -18,62 +18,65 @@ jest.mock('winston', () => ({
   transports: {
     File: jest.fn(),
   },
-}))
+}));
 
-import { Logger } from './Logger'
+import { Logger } from "./Logger";
 
-describe('Logger', () => {
+describe("Logger", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-  })
+    jest.clearAllMocks();
+  });
 
-  it('delegates info() to the underlying winston logger', () => {
+  it("delegates info() to the underlying winston logger", () => {
     // Act
-    Logger.info('test info', { key: 'value' })
+    Logger.info("test info", { key: "value" });
 
     // Assert
-    expect(mockLoggerInstance.info).toHaveBeenCalledWith('test info', {
-      key: 'value',
-    })
-  })
+    expect(mockLoggerInstance.info).toHaveBeenCalledWith("test info", {
+      key: "value",
+    });
+  });
 
-  it('delegates error() to the underlying winston logger', () => {
+  it("delegates error() to the underlying winston logger", () => {
     // Act
-    Logger.error('test error', { key: 'value' })
+    Logger.error("test error", { key: "value" });
 
     // Assert
-    expect(mockLoggerInstance.error).toHaveBeenCalledWith('test error', {
-      key: 'value',
-    })
-  })
+    expect(mockLoggerInstance.error).toHaveBeenCalledWith("test error", {
+      key: "value",
+    });
+  });
 
-  it('delegates warn() to the underlying winston logger', () => {
+  it("delegates warn() to the underlying winston logger", () => {
     // Act
-    Logger.warn('test warn')
+    Logger.warn("test warn");
 
     // Assert
-    expect(mockLoggerInstance.warn).toHaveBeenCalledWith('test warn', undefined)
-  })
+    expect(mockLoggerInstance.warn).toHaveBeenCalledWith(
+      "test warn",
+      undefined,
+    );
+  });
 
-  it('delegates debug() to the underlying winston logger', () => {
+  it("delegates debug() to the underlying winston logger", () => {
     // Act
-    Logger.debug('test debug')
+    Logger.debug("test debug");
 
     // Assert
     expect(mockLoggerInstance.debug).toHaveBeenCalledWith(
-      'test debug',
-      undefined
-    )
-  })
+      "test debug",
+      undefined,
+    );
+  });
 
-  it('delegates trace() to verbose on the underlying winston logger', () => {
+  it("delegates trace() to verbose on the underlying winston logger", () => {
     // Act
-    Logger.trace('test trace')
+    Logger.trace("test trace");
 
     // Assert
     expect(mockLoggerInstance.verbose).toHaveBeenCalledWith(
-      'test trace',
-      undefined
-    )
-  })
-})
+      "test trace",
+      undefined,
+    );
+  });
+});

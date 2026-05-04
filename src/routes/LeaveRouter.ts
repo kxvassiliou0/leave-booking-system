@@ -1,90 +1,90 @@
-import { RoleType } from '@enums'
-import { Router } from 'express'
-import { LeaveRequestController } from '../controllers/LeaveRequestController.ts'
-import { MiddlewareFactory } from '../helpers/MiddlewareFactory.ts'
-import { requireRole } from '../middleware/requireRole.ts'
-import type { IRouter } from '../types/IRouter.ts'
+import { RoleType } from "@enums";
+import { Router } from "express";
+import { LeaveRequestController } from "../controllers/LeaveRequestController.ts";
+import { MiddlewareFactory } from "../helpers/MiddlewareFactory.ts";
+import { requireRole } from "../middleware/requireRole.ts";
+import type { IRouter } from "../types/IRouter.ts";
 
 export class LeaveRouter implements IRouter {
-  public readonly authenticate = true
-  public readonly routeName = 'leave-requests'
-  public readonly limiter = MiddlewareFactory.jwtRateLimiter
-  public readonly basePath = '/api/leave-requests'
+  public readonly authenticate = true;
+  public readonly routeName = "leave-requests";
+  public readonly limiter = MiddlewareFactory.jwtRateLimiter;
+  public readonly basePath = "/api/leave-requests";
 
   constructor(
     private readonly router: Router,
-    private readonly leaveController: LeaveRequestController
+    private readonly leaveController: LeaveRequestController,
   ) {
-    this.addRoutes()
+    this.addRoutes();
   }
 
   public getRouter(): Router {
-    return this.router
+    return this.router;
   }
 
   private addRoutes(): void {
     this.router.get(
-      '/',
+      "/",
       requireRole(RoleType.Admin, RoleType.Manager),
-      this.leaveController.getAllLeaveRequests
-    )
+      this.leaveController.getAllLeaveRequests,
+    );
 
     this.router.post(
-      '/',
+      "/",
       requireRole(RoleType.Employee, RoleType.Manager, RoleType.Admin),
-      this.leaveController.createLeaveRequest
-    )
+      this.leaveController.createLeaveRequest,
+    );
 
     this.router.delete(
-      '/',
+      "/",
       requireRole(RoleType.Employee, RoleType.Manager, RoleType.Admin),
-      this.leaveController.deleteLeaveRequest
-    )
+      this.leaveController.deleteLeaveRequest,
+    );
 
     this.router.patch(
-      '/approve',
+      "/approve",
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.approveLeaveRequest
-    )
+      this.leaveController.approveLeaveRequest,
+    );
 
     this.router.patch(
-      '/reject',
+      "/reject",
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.rejectLeaveRequest
-    )
+      this.leaveController.rejectLeaveRequest,
+    );
 
     this.router.get(
-      '/pending/manager/:manager_id',
+      "/pending/manager/:manager_id",
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.getPendingRequestsByManager
-    )
+      this.leaveController.getPendingRequestsByManager,
+    );
 
     this.router.get(
-      '/calendar',
+      "/calendar",
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.getLeaveCalendar
-    )
+      this.leaveController.getLeaveCalendar,
+    );
 
     this.router.get(
-      '/reports/usage',
+      "/reports/usage",
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.getLeaveUsageReport
-    )
+      this.leaveController.getLeaveUsageReport,
+    );
 
     this.router.get(
-      '/reports/export',
+      "/reports/export",
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.exportLeaveReport
-    )
+      this.leaveController.exportLeaveReport,
+    );
 
     this.router.get(
-      '/status/:employee_id',
-      this.leaveController.getLeaveRequestsByEmployee
-    )
+      "/status/:employee_id",
+      this.leaveController.getLeaveRequestsByEmployee,
+    );
 
     this.router.get(
-      '/remaining/:employee_id',
-      this.leaveController.getRemainingLeave
-    )
+      "/remaining/:employee_id",
+      this.leaveController.getRemainingLeave,
+    );
   }
 }

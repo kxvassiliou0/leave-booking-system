@@ -1,4 +1,4 @@
-import { RoleType } from '@enums'
+import { RoleType } from "@enums";
 import {
   IsEmail,
   IsEnum,
@@ -8,7 +8,7 @@ import {
   IsPositive,
   IsString,
   MinLength,
-} from 'class-validator'
+} from "class-validator";
 import {
   BeforeInsert,
   Column,
@@ -16,98 +16,100 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from 'typeorm'
-import { PasswordHandler } from '../helpers/PasswordHandler.ts'
-import { Department } from './Department.entity.ts'
-import { JobRole } from './JobRole.entity.ts'
-import { LeaveRequest } from './LeaveRequest.entity.ts'
+} from "typeorm";
+import { PasswordHandler } from "../helpers/PasswordHandler.ts";
+import { Department } from "./Department.entity.ts";
+import { JobRole } from "./JobRole.entity.ts";
+import { LeaveRequest } from "./LeaveRequest.entity.ts";
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id!: number
+  id!: number;
 
   @Column()
   @IsNotEmpty()
   @IsString()
-  firstName!: string
+  firstName!: string;
 
   @Column()
   @IsNotEmpty()
   @IsString()
-  lastName!: string
+  lastName!: string;
 
   @Column({ unique: true })
   @IsEmail()
-  email!: string
+  email!: string;
 
   @Column({ select: false })
   @IsNotEmpty()
   @IsString()
-  @MinLength(10, { message: 'Password must be at least 10 characters long' })
-  password!: string
+  @MinLength(10, { message: "Password must be at least 10 characters long" })
+  password!: string;
 
   @Column({ length: 32, select: false })
-  salt!: string
+  salt!: string;
 
-  @Column({ type: 'simple-enum', enum: RoleType })
+  @Column({ type: "simple-enum", enum: RoleType })
   @IsEnum(RoleType)
-  role!: RoleType
+  role!: RoleType;
 
   @Column({ default: 25 })
   @IsInt()
   @IsPositive()
-  annualLeaveAllowance!: number
+  annualLeaveAllowance!: number;
 
   @ManyToOne(() => Department, (department: Department) => department.users)
-  department!: Department
+  department!: Department;
 
   @Column()
   @IsInt()
   @IsPositive()
-  departmentId!: number
+  departmentId!: number;
 
   @ManyToOne(() => JobRole, (jobRole: JobRole) => jobRole.users)
-  jobRole!: JobRole
+  jobRole!: JobRole;
 
   @Column()
   @IsInt()
   @IsPositive()
-  jobRoleId!: number
+  jobRoleId!: number;
 
   @ManyToOne(() => User, (user: User) => user.subordinates, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: "SET NULL",
   })
-  manager!: User | null
+  manager!: User | null;
 
   @Column({ nullable: true })
   @IsOptional()
   @IsInt()
-  managerId!: number | null
+  managerId!: number | null;
 
   @OneToMany(() => User, (user: User) => user.manager)
-  subordinates!: Array<User>
+  subordinates!: Array<User>;
 
   @OneToMany(
     () => LeaveRequest,
-    (leaveRequest: LeaveRequest) => leaveRequest.user
+    (leaveRequest: LeaveRequest) => leaveRequest.user,
   )
-  leaveRequests!: Array<LeaveRequest>
+  leaveRequests!: Array<LeaveRequest>;
 
   @OneToMany(
     () => LeaveRequest,
-    (leaveRequest: LeaveRequest) => leaveRequest.reviewedBy
+    (leaveRequest: LeaveRequest) => leaveRequest.reviewedBy,
   )
-  reviewedLeaveRequests!: Array<LeaveRequest>
+  reviewedLeaveRequests!: Array<LeaveRequest>;
 
   @BeforeInsert()
   hashPassword(): void {
     if (!this.password) {
-      throw new Error('Password must be provided before inserting a user.')
+      throw new Error("Password must be provided before inserting a user.");
     }
-    const { hashedPassword, salt } = PasswordHandler.hashPassword(this.password)
-    this.password = hashedPassword
-    this.salt = salt
+    const { hashedPassword, salt } = PasswordHandler.hashPassword(
+      this.password,
+    );
+    this.password = hashedPassword;
+    this.salt = salt;
   }
 }

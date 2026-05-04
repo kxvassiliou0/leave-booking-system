@@ -1,10 +1,10 @@
-import type { RequestHandler, Router } from 'express'
+import type { RequestHandler, Router } from "express";
 
 export interface IRouter {
-  authenticate: boolean
-  routeName: string
-  limiter: RequestHandler | null
-  basePath: string
+  authenticate: boolean;
+  routeName: string;
+  limiter: RequestHandler | null;
+  basePath: string;
 
-  getRouter(): Router
+  getRouter(): Router;
 }

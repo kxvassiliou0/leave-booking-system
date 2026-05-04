@@ -1101,15 +1101,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests/pending/manager/2",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "leave-requests",
-                    "pending",
-                    "manager",
-                    "2"
-                  ],
+                  "host": ["{{baseUrl}}"],
+                  "path": ["leave-requests", "pending", "manager", "2"],
                   "query": [
                     {
                       "key": "from",
@@ -1171,15 +1164,8 @@
                     "header": [],
                     "url": {
                       "raw": "{{baseUrl}}/leave-requests/pending/manager/2?from=2026-07-01&to=2026-07-31",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "leave-requests",
-                        "pending",
-                        "manager",
-                        "2"
-                      ],
+                      "host": ["{{baseUrl}}"],
+                      "path": ["leave-requests", "pending", "manager", "2"],
                       "query": [
                         {
                           "key": "from",
@@ -1221,15 +1207,8 @@
                     "header": [],
                     "url": {
                       "raw": "{{baseUrl}}/leave-requests/pending/manager/2?from=not-a-date",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "leave-requests",
-                        "pending",
-                        "manager",
-                        "2"
-                      ],
+                      "host": ["{{baseUrl}}"],
+                      "path": ["leave-requests", "pending", "manager", "2"],
                       "query": [
                         {
                           "key": "from",
@@ -1269,12 +1248,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "leave-requests"
-                  ],
+                  "host": ["{{baseUrl}}"],
+                  "path": ["leave-requests"],
                   "query": [
                     {
                       "key": "leave_type",
@@ -1341,12 +1316,8 @@
                     "header": [],
                     "url": {
                       "raw": "{{baseUrl}}/leave-requests?leave_type=Vacation",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "leave-requests"
-                      ],
+                      "host": ["{{baseUrl}}"],
+                      "path": ["leave-requests"],
                       "query": [
                         {
                           "key": "leave_type",
@@ -1762,12 +1733,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/leave-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "leave-requests"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["leave-requests"],
               "query": [
                 {
                   "key": "employee_id",
@@ -1844,12 +1811,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?employee_id=5",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "leave-requests"
-                  ],
+                  "host": ["{{baseUrl}}"],
+                  "path": ["leave-requests"],
                   "query": [
                     {
                       "key": "employee_id",
@@ -1887,12 +1850,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?manager_id=2",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "leave-requests"
-                  ],
+                  "host": ["{{baseUrl}}"],
+                  "path": ["leave-requests"],
                   "query": [
                     {
                       "key": "manager_id",
@@ -1930,12 +1889,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?leave_type=Vacation&from=2026-04-01&to=2027-03-31",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "leave-requests"
-                  ],
+                  "host": ["{{baseUrl}}"],
+                  "path": ["leave-requests"],
                   "query": [
                     {
                       "key": "leave_type",
@@ -1981,12 +1936,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?employee_id=4&manager_id=2",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "leave-requests"
-                  ],
+                  "host": ["{{baseUrl}}"],
+                  "path": ["leave-requests"],
                   "query": [
                     {
                       "key": "employee_id",
