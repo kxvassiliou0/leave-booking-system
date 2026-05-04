@@ -1,48 +1,40 @@
 erDiagram
-
-    DEPARTMENT {
-        int id PK
-        string name
-    }
-
     JOB_ROLE {
         int id PK
         string name
     }
-
+    DEPARTMENT {
+        int id PK
+        string name
+    }
     USER {
         int id PK
-        string firstName
-        string lastName
-        string email
-        string password
-        enum role "Employee | Manager | Admin"
-        int annualLeaveAllowance
         int departmentId FK
         int jobRoleId FK
-        int managerId FK_NULL
+        int managerId FK
+        int annualLeaveAllowance
+        RoleType role
+        string email
+        string firstName
+        string lastName
+        string password
+        string salt
     }
-
-    LEAVE_REQUEST {
+    LEAVEREQUEST {
         int id PK
-        date startDate
-        date endDate
-        int daysRequested
-        enum leaveType "Vacation | Sick | Personal"
-        string reason NULL
-        enum status DEFAULT_PENDING
-        datetime createdAt
-        string managerNote NULL
+        int reviewedById FK
         int userId FK
-        int reviewedById FK_NULL
+        date endDate
+        date startDate
+        datetime createdAt
+        int daysRequested
+        LeaveStatus status
+        LeaveType leaveType
+        text managerNote
+        text reason
     }
-
-    DEPARTMENT ||--o{ USER : "employs"
-
-    JOB_ROLE ||--o{ USER : "assigned to"
-
-    USER ||--o{ USER : "manages"
-
-    USER ||--o{ LEAVE_REQUEST : "submits"
-
-    USER ||--o{ LEAVE_REQUEST : "reviews"
+    DEPARTMENT ||--o{ USER : departmentId
+    JOB_ROLE ||--o{ USER : jobRoleId
+    USER ||--o{ LEAVEREQUEST : reviewedById
+    USER ||--o{ LEAVEREQUEST : userId
+    USER ||--o{ USER : managerId

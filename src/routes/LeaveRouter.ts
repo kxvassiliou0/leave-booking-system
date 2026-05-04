@@ -46,6 +46,7 @@ export class LeaveRouter implements IRouter {
       requireRole(RoleType.Manager, RoleType.Admin),
       this.leaveController.approveLeaveRequest
     )
+
     this.router.patch(
       '/reject',
       requireRole(RoleType.Manager, RoleType.Admin),
@@ -59,21 +60,28 @@ export class LeaveRouter implements IRouter {
     )
 
     this.router.get(
-      '/reports/team-utilisation/:manager_id',
+      '/calendar',
       requireRole(RoleType.Manager, RoleType.Admin),
-      this.leaveController.getTeamUtilisationReport
+      this.leaveController.getLeaveCalendar
     )
 
     this.router.get(
-      '/reports/status-breakdown',
-      requireRole(RoleType.Admin),
-      this.leaveController.getStatusBreakdownReport
+      '/reports/usage',
+      requireRole(RoleType.Manager, RoleType.Admin),
+      this.leaveController.getLeaveUsageReport
+    )
+
+    this.router.get(
+      '/reports/export',
+      requireRole(RoleType.Manager, RoleType.Admin),
+      this.leaveController.exportLeaveReport
     )
 
     this.router.get(
       '/status/:employee_id',
       this.leaveController.getLeaveRequestsByEmployee
     )
+
     this.router.get(
       '/remaining/:employee_id',
       this.leaveController.getRemainingLeave

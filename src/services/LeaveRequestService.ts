@@ -2,12 +2,20 @@ import { LeaveStatus, LeaveType, RoleType } from '@enums'
 import { validate } from 'class-validator'
 import { StatusCodes } from 'http-status-codes'
 import type { Repository } from 'typeorm'
-import { Between, FindOptionsWhere, In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
+import {
+  Between,
+  FindOptionsWhere,
+  In,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+} from 'typeorm'
 import { LeaveRequest } from '../entities/LeaveRequest.entity.ts'
+import { PublicHoliday } from '../entities/PublicHoliday.entity.ts'
 import { User } from '../entities/User.entity.ts'
 import { AppError } from '../helpers/AppError.ts'
 import { Logger } from '../helpers/Logger.ts'
 import type {
+  CsvExportResult,
   DateRangeQuery,
   ILeaveRequestService,
   ServiceResult,
@@ -19,7 +27,8 @@ const VALID_LEAVE_TYPES = Object.values(LeaveType)
 export class LeaveRequestService implements ILeaveRequestService {
   constructor(
     private readonly userRepo: Repository<User>,
-    private readonly leaveRepo: Repository<LeaveRequest>
+    private readonly leaveRepo: Repository<LeaveRequest>,
+    private readonly publicHolidayRepo: Repository<PublicHoliday>
   ) {}
 
   private calculateDays(start: Date, end: Date): number {
@@ -31,7 +40,10 @@ export class LeaveRequestService implements ILeaveRequestService {
     return date.toISOString().split('T')[0]
   }
 
-  getBusinessYear(referenceDate: Date = new Date()): { start: Date; end: Date } {
+  getBusinessYear(referenceDate: Date = new Date()): {
+    start: Date
+    end: Date
+  } {
     const year =
       referenceDate.getMonth() >= 3 ?
         referenceDate.getFullYear()
@@ -42,10 +54,17 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
   }
 
-  async getUsedDays(userId: number, referenceDate: Date = new Date()): Promise<number> {
+  async getUsedDays(
+    userId: number,
+    referenceDate: Date = new Date()
+  ): Promise<number> {
     const { start, end } = this.getBusinessYear(referenceDate)
     const approved = await this.leaveRepo.find({
-      where: { userId, status: LeaveStatus.Approved, startDate: Between(start, end) },
+      where: {
+        userId,
+        status: LeaveStatus.Approved,
+        startDate: Between(start, end),
+      },
     })
     return approved.reduce((total, lr) => total + lr.daysRequested, 0)
   }
@@ -58,7 +77,10 @@ export class LeaveRequestService implements ILeaveRequestService {
     return null
   }
 
-  async canAccessEmployee(token: TokenPayload, employeeId: number): Promise<boolean> {
+  async canAccessEmployee(
+    token: TokenPayload,
+    employeeId: number
+  ): Promise<boolean> {
     if (token.role === RoleType.Admin) return true
     if (token.role === RoleType.Employee) return token.id === employeeId
     if (token.id === employeeId) return true
@@ -110,7 +132,10 @@ export class LeaveRequestService implements ILeaveRequestService {
       throw new AppError('Invalid employee ID', StatusCodes.BAD_REQUEST)
     }
     if (!start_date || !end_date) {
-      throw new AppError('start_date and end_date are required', StatusCodes.BAD_REQUEST)
+      throw new AppError(
+        'start_date and end_date are required',
+        StatusCodes.BAD_REQUEST
+      )
     }
 
     const start = new Date(start_date)
@@ -135,7 +160,9 @@ export class LeaveRequestService implements ILeaveRequestService {
       )
     }
 
-    const user = await this.userRepo.findOne({ where: { id: Number(employee_id) } })
+    const user = await this.userRepo.findOne({
+      where: { id: Number(employee_id) },
+    })
     if (!user) {
       throw new AppError('Invalid employee ID', StatusCodes.BAD_REQUEST)
     }
@@ -143,7 +170,10 @@ export class LeaveRequestService implements ILeaveRequestService {
     const daysRequested = this.calculateDays(start, end)
     const usedDays = await this.getUsedDays(Number(employee_id), start)
     if (usedDays + daysRequested > user.annualLeaveAllowance) {
-      throw new AppError('Days requested exceed remaining balance', StatusCodes.BAD_REQUEST)
+      throw new AppError(
+        'Days requested exceed remaining balance',
+        StatusCodes.BAD_REQUEST
+      )
     }
 
     const overlap = await this.leaveRepo
@@ -153,13 +183,29 @@ export class LeaveRequestService implements ILeaveRequestService {
         statuses: [LeaveStatus.Rejected, LeaveStatus.Cancelled],
       })
       .andWhere('lr.startDate <= :endDate', { endDate: this.toDateString(end) })
-      .andWhere('lr.endDate >= :startDate', { startDate: this.toDateString(start) })
+      .andWhere('lr.endDate >= :startDate', {
+        startDate: this.toDateString(start),
+      })
       .getOne()
 
     if (overlap) {
       throw new AppError(
         'Date range of request overlaps with existing request',
         StatusCodes.CONFLICT
+      )
+    }
+
+    const holidays = await this.publicHolidayRepo.find({
+      where: { date: Between(start, end) },
+      order: { date: 'ASC' },
+    })
+    if (holidays.length > 0) {
+      const names = holidays
+        .map(h => `${h.name} (${this.toDateString(new Date(h.date))})`)
+        .join(', ')
+      throw new AppError(
+        `Date range includes public holiday(s): ${names}`,
+        StatusCodes.BAD_REQUEST
       )
     }
 
@@ -215,10 +261,16 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
 
     if (leaveRequest.status === LeaveStatus.Cancelled) {
-      throw new AppError('Leave request is already cancelled', StatusCodes.BAD_REQUEST)
+      throw new AppError(
+        'Leave request is already cancelled',
+        StatusCodes.BAD_REQUEST
+      )
     }
     if (leaveRequest.status === LeaveStatus.Rejected) {
-      throw new AppError('Cannot cancel a rejected leave request', StatusCodes.BAD_REQUEST)
+      throw new AppError(
+        'Cannot cancel a rejected leave request',
+        StatusCodes.BAD_REQUEST
+      )
     }
 
     const wasApproved = leaveRequest.status === LeaveStatus.Approved
@@ -228,22 +280,31 @@ export class LeaveRequestService implements ILeaveRequestService {
     if (reason) leaveRequest.managerNote = reason
 
     const updated = await this.leaveRepo.save(leaveRequest)
-    Logger.info('Leave request cancelled', { leave_request_id, employee_id, days_restored: daysToRestore })
+    Logger.info('Leave request cancelled', {
+      leave_request_id,
+      employee_id,
+      days_restored: daysToRestore,
+    })
 
-    const data: Record<string, unknown> = { ...this.formatLeaveRequest(updated) }
+    const data: Record<string, unknown> = {
+      ...this.formatLeaveRequest(updated),
+    }
     if (reason) data.reason = reason
 
     if (wasApproved) {
-      const user = await this.userRepo.findOne({ where: { id: Number(employee_id) } })
+      const user = await this.userRepo.findOne({
+        where: { id: Number(employee_id) },
+      })
       const newUsedDays = await this.getUsedDays(Number(employee_id))
       data.days_restored = daysToRestore
-      data.new_days_remaining = user !== null ? user.annualLeaveAllowance - newUsedDays : undefined
+      data.new_days_remaining =
+        user !== null ? user.annualLeaveAllowance - newUsedDays : undefined
     }
 
     const message =
-      wasApproved
-        ? `Leave request has been cancelled. ${daysToRestore} day(s) have been restored to your annual leave balance.`
-        : 'Leave request has been cancelled'
+      wasApproved ?
+        `Leave request has been cancelled. ${daysToRestore} day(s) have been restored to your annual leave balance.`
+      : 'Leave request has been cancelled'
 
     return { message, data }
   }
@@ -272,7 +333,9 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
 
     if (token?.role === RoleType.Manager) {
-      const employee = await this.userRepo.findOne({ where: { id: leaveRequest.userId } })
+      const employee = await this.userRepo.findOne({
+        where: { id: leaveRequest.userId },
+      })
       if (!employee || employee.managerId !== token.id) {
         throw new AppError(
           'You can only approve leave requests for your direct reports',
@@ -316,7 +379,9 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
 
     if (token?.role === RoleType.Manager) {
-      const employee = await this.userRepo.findOne({ where: { id: leaveRequest.userId } })
+      const employee = await this.userRepo.findOne({
+        where: { id: leaveRequest.userId },
+      })
       if (!employee || employee.managerId !== token.id) {
         throw new AppError(
           'You can only reject leave requests for your direct reports',
@@ -434,7 +499,10 @@ export class LeaveRequestService implements ILeaveRequestService {
       }
     }
     if (fromDate && toDate && fromDate > toDate) {
-      throw new AppError('from date must not be after to date', StatusCodes.BAD_REQUEST)
+      throw new AppError(
+        'from date must not be after to date',
+        StatusCodes.BAD_REQUEST
+      )
     }
 
     const team = await this.userRepo.find({ where: { managerId } })
@@ -464,9 +532,11 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
   }
 
-  private buildDateLeaveTypeFilters(
-    query: Record<string, unknown>
-  ): { leaveTypeFilter?: LeaveType; fromDate?: Date; toDate?: Date } {
+  private buildDateLeaveTypeFilters(query: Record<string, unknown>): {
+    leaveTypeFilter?: LeaveType
+    fromDate?: Date
+    toDate?: Date
+  } {
     const { leave_type, from, to } = query
 
     let leaveTypeFilter: LeaveType | undefined
@@ -484,14 +554,19 @@ export class LeaveRequestService implements ILeaveRequestService {
     let toDate: Date | undefined
     if (from !== undefined) {
       fromDate = new Date(from as string)
-      if (isNaN(fromDate.getTime())) throw new AppError('Invalid from date format', StatusCodes.BAD_REQUEST)
+      if (isNaN(fromDate.getTime()))
+        throw new AppError('Invalid from date format', StatusCodes.BAD_REQUEST)
     }
     if (to !== undefined) {
       toDate = new Date(to as string)
-      if (isNaN(toDate.getTime())) throw new AppError('Invalid to date format', StatusCodes.BAD_REQUEST)
+      if (isNaN(toDate.getTime()))
+        throw new AppError('Invalid to date format', StatusCodes.BAD_REQUEST)
     }
     if (fromDate && toDate && fromDate > toDate) {
-      throw new AppError('from date must not be after to date', StatusCodes.BAD_REQUEST)
+      throw new AppError(
+        'from date must not be after to date',
+        StatusCodes.BAD_REQUEST
+      )
     }
 
     return { leaveTypeFilter, fromDate, toDate }
@@ -503,9 +578,12 @@ export class LeaveRequestService implements ILeaveRequestService {
   ): Promise<ServiceResult> {
     const isAdmin = token?.role === RoleType.Admin
     const { employee_id, manager_id } = query
-    const { leaveTypeFilter, fromDate, toDate } = this.buildDateLeaveTypeFilters(query)
+    const { leaveTypeFilter, fromDate, toDate } =
+      this.buildDateLeaveTypeFilters(query)
 
-    const applyFilters = (where: FindOptionsWhere<LeaveRequest>): FindOptionsWhere<LeaveRequest> => {
+    const applyFilters = (
+      where: FindOptionsWhere<LeaveRequest>
+    ): FindOptionsWhere<LeaveRequest> => {
       if (leaveTypeFilter) where.leaveType = leaveTypeFilter
       if (fromDate) where.endDate = MoreThanOrEqual(fromDate)
       if (toDate) where.startDate = LessThanOrEqual(toDate)
@@ -538,9 +616,11 @@ export class LeaveRequestService implements ILeaveRequestService {
 
     if (employee_id !== undefined) {
       const id = parseInt(employee_id as string, 10)
-      if (isNaN(id)) throw new AppError('Invalid employee_id', StatusCodes.BAD_REQUEST)
+      if (isNaN(id))
+        throw new AppError('Invalid employee_id', StatusCodes.BAD_REQUEST)
       const user = await this.userRepo.findOne({ where: { id } })
-      if (!user) throw new AppError('Employee not found', StatusCodes.BAD_REQUEST)
+      if (!user)
+        throw new AppError('Employee not found', StatusCodes.BAD_REQUEST)
       const requests = await this.leaveRepo.find({
         where: applyFilters({ userId: id }),
         order: { createdAt: 'DESC' },
@@ -553,9 +633,11 @@ export class LeaveRequestService implements ILeaveRequestService {
 
     if (manager_id !== undefined) {
       const id = parseInt(manager_id as string, 10)
-      if (isNaN(id)) throw new AppError('Invalid manager_id', StatusCodes.BAD_REQUEST)
+      if (isNaN(id))
+        throw new AppError('Invalid manager_id', StatusCodes.BAD_REQUEST)
       const manager = await this.userRepo.findOne({ where: { id } })
-      if (!manager) throw new AppError('Manager not found', StatusCodes.BAD_REQUEST)
+      if (!manager)
+        throw new AppError('Manager not found', StatusCodes.BAD_REQUEST)
       const team = await this.userRepo.find({ where: { managerId: id } })
       if (team.length === 0) {
         return {
@@ -584,88 +666,196 @@ export class LeaveRequestService implements ILeaveRequestService {
     }
   }
 
-  async getTeamUtilisationReport(
+  async getLeaveCalendar(
     token: TokenPayload | undefined,
-    managerId: number
+    query: DateRangeQuery
   ): Promise<ServiceResult> {
-    if (isNaN(managerId)) {
-      throw new AppError('Invalid manager ID', StatusCodes.BAD_REQUEST)
+    const { from, to } = query
+    if (!from || !to) {
+      throw new AppError(
+        'from and to query params are required',
+        StatusCodes.BAD_REQUEST
+      )
+    }
+
+    const fromDate = new Date(from)
+    const toDate = new Date(to)
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      throw new AppError('Invalid date format', StatusCodes.BAD_REQUEST)
+    }
+    if (fromDate > toDate) {
+      throw new AppError(
+        'from date must not be after to date',
+        StatusCodes.BAD_REQUEST
+      )
     }
 
     const isAdmin = token?.role === RoleType.Admin
-    if (!isAdmin && token?.id !== managerId) {
-      throw new AppError('You can only view utilisation for your own team', StatusCodes.FORBIDDEN)
+    const where: FindOptionsWhere<LeaveRequest> = {
+      status: LeaveStatus.Approved,
+      startDate: LessThanOrEqual(toDate),
+      endDate: MoreThanOrEqual(fromDate),
     }
 
-    const manager = await this.userRepo.findOne({ where: { id: managerId } })
-    if (!manager) {
-      throw new AppError('Invalid manager ID', StatusCodes.BAD_REQUEST)
+    if (!isAdmin) {
+      const team = await this.userRepo.find({ where: { managerId: token?.id } })
+      if (team.length === 0) {
+        return { message: 'Leave calendar', data: [] }
+      }
+      where.userId = In(team.map(u => u.id))
     }
 
-    const team = await this.userRepo.find({ where: { managerId } })
-    const data = await Promise.all(
-      team.map(async member => {
-        const usedDays = await this.getUsedDays(member.id)
-        const utilisationPercent =
-          member.annualLeaveAllowance > 0 ?
-            Math.round((usedDays / member.annualLeaveAllowance) * 100)
-          : 0
-        return {
-          employee_id: member.id,
-          name: `${member.firstName} ${member.lastName}`,
-          annual_allowance: member.annualLeaveAllowance,
-          days_used: usedDays,
-          days_remaining: member.annualLeaveAllowance - usedDays,
-          utilisation_percent: utilisationPercent,
-        }
-      })
-    )
+    const requests = await this.leaveRepo.find({
+      where,
+      relations: ['user'],
+      order: { startDate: 'ASC' },
+    })
 
-    return { message: `Team utilisation report for manager_id ${managerId}`, data }
+    return {
+      message: 'Leave calendar',
+      data: requests.map(lr => ({
+        employee_id: lr.userId,
+        name: `${lr.user.firstName} ${lr.user.lastName}`,
+        department_id: lr.user.departmentId,
+        leave_type: lr.leaveType,
+        start_date: this.toDateString(new Date(lr.startDate)),
+        end_date: this.toDateString(new Date(lr.endDate)),
+      })),
+    }
   }
 
-  async getStatusBreakdownReport(query: Record<string, unknown>): Promise<ServiceResult> {
-    const { department_id } = query
-    const { start, end } = this.getBusinessYear()
+  async getLeaveUsageReport(
+    token: TokenPayload | undefined,
+    query: Record<string, unknown>
+  ): Promise<ServiceResult> {
+    const { department_id, user_id } = query
+    const { fromDate, toDate } = this.buildDateLeaveTypeFilters(query)
+    const isAdmin = token?.role === RoleType.Admin
+    const isManager = token?.role === RoleType.Manager
 
-    let userIds: Array<number> | undefined
+    let users: Array<User>
     let scope: string
 
-    if (department_id !== undefined) {
+    if (user_id !== undefined) {
+      const id = parseInt(user_id as string, 10)
+      if (isNaN(id))
+        throw new AppError('Invalid user_id', StatusCodes.BAD_REQUEST)
+      const user = await this.userRepo.findOne({ where: { id } })
+      if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
+      users = [user]
+      scope = `employee ${id}`
+    } else if (department_id !== undefined) {
+      if (!isAdmin) throw new AppError('Access denied', StatusCodes.FORBIDDEN)
       const deptId = parseInt(department_id as string, 10)
-      if (isNaN(deptId)) throw new AppError('Invalid department_id', StatusCodes.BAD_REQUEST)
-      const deptUsers = await this.userRepo.find({ where: { departmentId: deptId } })
-      userIds = deptUsers.map(u => u.id)
+      if (isNaN(deptId))
+        throw new AppError('Invalid department_id', StatusCodes.BAD_REQUEST)
+      users = await this.userRepo.find({ where: { departmentId: deptId } })
       scope = `department ${deptId}`
+    } else if (isManager) {
+      users = await this.userRepo.find({ where: { managerId: token?.id } })
+      scope = `team of manager ${token?.id}`
     } else {
+      users = await this.userRepo.find()
       scope = 'company-wide'
     }
 
-    const totals: Record<string, number> = {
-      Pending: 0,
-      Approved: 0,
-      Rejected: 0,
-      Cancelled: 0,
+    if (users.length === 0) {
+      return { message: 'Leave usage report', data: { scope, employees: [] } }
     }
 
-    if (userIds !== undefined && userIds.length === 0) {
-      return {
-        message: 'Status breakdown report',
-        data: { scope, totals },
+    const where: FindOptionsWhere<LeaveRequest> = {
+      userId: In(users.map(u => u.id)),
+      status: LeaveStatus.Approved,
+    }
+    if (fromDate) where.endDate = MoreThanOrEqual(fromDate)
+    if (toDate) where.startDate = LessThanOrEqual(toDate)
+
+    const requests = await this.leaveRepo.find({ where })
+
+    const employees = users.map(user => {
+      const userRequests = requests.filter(lr => lr.userId === user.id)
+      const breakdown: Record<string, number> = {
+        Vacation: 0,
+        Sick: 0,
+        Personal: 0,
       }
+      let total = 0
+      for (const lr of userRequests) {
+        breakdown[lr.leaveType] =
+          (breakdown[lr.leaveType] ?? 0) + lr.daysRequested
+        total += lr.daysRequested
+      }
+      return {
+        employee_id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        department_id: user.departmentId,
+        breakdown,
+        total_days_used: total,
+      }
+    })
+
+    return { message: 'Leave usage report', data: { scope, employees } }
+  }
+
+  async exportLeaveReport(
+    token: TokenPayload | undefined,
+    query: Record<string, unknown>
+  ): Promise<CsvExportResult> {
+    const { department_id, user_id } = query
+    const { fromDate, toDate } = this.buildDateLeaveTypeFilters(query)
+    const isAdmin = token?.role === RoleType.Admin
+
+    const where: FindOptionsWhere<LeaveRequest> = {}
+
+    if (user_id !== undefined) {
+      const id = parseInt(user_id as string, 10)
+      if (isNaN(id))
+        throw new AppError('Invalid user_id', StatusCodes.BAD_REQUEST)
+      where.userId = id
+    } else if (department_id !== undefined) {
+      if (!isAdmin) throw new AppError('Access denied', StatusCodes.FORBIDDEN)
+      const deptId = parseInt(department_id as string, 10)
+      if (isNaN(deptId))
+        throw new AppError('Invalid department_id', StatusCodes.BAD_REQUEST)
+      const deptUsers = await this.userRepo.find({
+        where: { departmentId: deptId },
+      })
+      where.userId = In(deptUsers.map(u => u.id))
+    } else if (!isAdmin) {
+      const team = await this.userRepo.find({ where: { managerId: token?.id } })
+      where.userId = In(team.map(u => u.id))
     }
 
-    const where: FindOptionsWhere<LeaveRequest> = { startDate: Between(start, end) }
-    if (userIds !== undefined) where.userId = In(userIds)
+    if (fromDate) where.endDate = MoreThanOrEqual(fromDate)
+    if (toDate) where.startDate = LessThanOrEqual(toDate)
 
-    const allRequests = await this.leaveRepo.find({ where })
-    for (const lr of allRequests) {
-      if (lr.status in totals) totals[lr.status]++
-    }
+    const requests = await this.leaveRepo.find({
+      where,
+      relations: ['user'],
+      order: { startDate: 'ASC' },
+    })
+
+    const header =
+      'employee_id,name,department_id,leave_type,start_date,end_date,days_requested,status'
+    const rows = requests.map(lr =>
+      [
+        lr.userId,
+        `"${lr.user.firstName} ${lr.user.lastName}"`,
+        lr.user.departmentId,
+        lr.leaveType,
+        this.toDateString(new Date(lr.startDate)),
+        this.toDateString(new Date(lr.endDate)),
+        lr.daysRequested,
+        lr.status,
+      ].join(',')
+    )
+
+    const from = fromDate ? this.toDateString(fromDate) : 'all'
+    const to = toDate ? this.toDateString(toDate) : 'time'
 
     return {
-      message: 'Status breakdown report',
-      data: { scope, totals },
+      csv: [header, ...rows].join('\n'),
+      filename: `leave-report-${from}-to-${to}.csv`,
     }
   }
 }

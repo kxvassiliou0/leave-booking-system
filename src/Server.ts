@@ -21,7 +21,7 @@ export class Server {
 
   constructor(
     private readonly port: string | number,
-    private readonly routers: IRouter[],
+    private readonly routers: Array<IRouter>,
     private readonly appDataSource: DataSource
   ) {
     this.app = express()
@@ -48,8 +48,14 @@ export class Server {
   private corsMiddleware(): express.RequestHandler {
     return (req: Request, res: Response, next: express.NextFunction): void => {
       res.setHeader('Access-Control-Allow-Origin', '*')
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PATCH, DELETE, OPTIONS'
+      )
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization'
+      )
       if (req.method === 'OPTIONS') {
         res.sendStatus(204)
         return

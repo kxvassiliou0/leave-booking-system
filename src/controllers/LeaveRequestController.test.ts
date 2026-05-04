@@ -303,75 +303,93 @@ describe('LeaveRequestController.getAllLeaveRequests', () => {
   })
 })
 
-describe('LeaveRequestController.getTeamUtilisationReport', () => {
-  it('returns 400 for non-numeric manager_id', async () => {
+describe('LeaveRequestController.getLeaveCalendar', () => {
+  it('returns 200 with calendar data from service', async () => {
     // Arrange
-    const req = makeAuthRequest({ params: { manager_id: 'abc' } })
+    mockService.getLeaveCalendar.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Admin, query: { from: '2026-09-01', to: '2026-09-30' } })
     const res = mockResponse()
 
     // Act
-    await controller.getTeamUtilisationReport(req, res)
+    await controller.getLeaveCalendar(req, res)
 
     // Assert
-    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
-    expect(mockService.getTeamUtilisationReport).not.toHaveBeenCalled()
-  })
-
-  it('returns 200 with utilisation report from service', async () => {
-    // Arrange
-    mockService.getTeamUtilisationReport.mockResolvedValue(successResult)
-    const req = makeAuthRequest({ role: RoleType.Manager, id: 2, params: { manager_id: '2' } })
-    const res = mockResponse()
-
-    // Act
-    await controller.getTeamUtilisationReport(req, res)
-
-    // Assert
-    expect(mockService.getTeamUtilisationReport).toHaveBeenCalledWith(req.signedInUser?.token, 2)
+    expect(mockService.getLeaveCalendar).toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
-  it('returns 403 when manager tries to view another team', async () => {
+  it('returns 400 when service throws BAD_REQUEST', async () => {
     // Arrange
-    mockService.getTeamUtilisationReport.mockRejectedValue(
-      new AppError('You can only view utilisation for your own team', StatusCodes.FORBIDDEN)
+    mockService.getLeaveCalendar.mockRejectedValue(
+      new AppError('from and to query params are required', StatusCodes.BAD_REQUEST)
     )
-    const req = makeAuthRequest({ role: RoleType.Manager, id: 2, params: { manager_id: '99' } })
-    const res = mockResponse()
-
-    // Act
-    await controller.getTeamUtilisationReport(req, res)
-
-    // Assert
-    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
-  })
-})
-
-describe('LeaveRequestController.getStatusBreakdownReport', () => {
-  it('returns 200 with status breakdown from service', async () => {
-    // Arrange
-    mockService.getStatusBreakdownReport.mockResolvedValue(successResult)
     const req = makeAuthRequest({ role: RoleType.Admin })
     const res = mockResponse()
 
     // Act
-    await controller.getStatusBreakdownReport(req, res)
+    await controller.getLeaveCalendar(req, res)
 
     // Assert
-    expect(mockService.getStatusBreakdownReport).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST)
+  })
+})
+
+describe('LeaveRequestController.getLeaveUsageReport', () => {
+  it('returns 200 with usage report from service', async () => {
+    // Arrange
+    mockService.getLeaveUsageReport.mockResolvedValue(successResult)
+    const req = makeAuthRequest({ role: RoleType.Admin })
+    const res = mockResponse()
+
+    // Act
+    await controller.getLeaveUsageReport(req, res)
+
+    // Assert
+    expect(mockService.getLeaveUsageReport).toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
   })
 
   it('returns 500 on unexpected error', async () => {
     // Arrange
-    mockService.getStatusBreakdownReport.mockRejectedValue(new Error('DB failure'))
+    mockService.getLeaveUsageReport.mockRejectedValue(new Error('DB failure'))
     const req = makeAuthRequest({ role: RoleType.Admin })
     const res = mockResponse()
 
     // Act
-    await controller.getStatusBreakdownReport(req, res)
+    await controller.getLeaveUsageReport(req, res)
 
     // Assert
     expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR)
+  })
+})
+
+describe('LeaveRequestController.exportLeaveReport', () => {
+  it('returns CSV with correct headers on success', async () => {
+    // Arrange
+    mockService.exportLeaveReport.mockResolvedValue({ csv: 'employee_id,name\n1,John', filename: 'report.csv' })
+    const req = makeAuthRequest({ role: RoleType.Admin })
+    const res = mockResponse()
+
+    // Act
+    await controller.exportLeaveReport(req, res)
+
+    // Assert
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv')
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.OK)
+  })
+
+  it('returns 403 when service throws FORBIDDEN', async () => {
+    // Arrange
+    mockService.exportLeaveReport.mockRejectedValue(
+      new AppError('Access denied', StatusCodes.FORBIDDEN)
+    )
+    const req = makeAuthRequest({ role: RoleType.Manager })
+    const res = mockResponse()
+
+    // Act
+    await controller.exportLeaveReport(req, res)
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.FORBIDDEN)
   })
 })

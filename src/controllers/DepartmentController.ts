@@ -21,14 +21,22 @@ export class DepartmentController implements IEntityController {
       Logger.error('Unexpected error in DepartmentController.getAll', {
         error: error instanceof Error ? error.message : String(error),
       })
-      ResponseHandler.sendErrorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to retrieve departments')
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to retrieve departments'
+      )
     }
   }
 
   public getById = async (req: Request, res: Response): Promise<void> => {
     const id = parseInt(req.params.id as string)
     if (isNaN(id)) {
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'Invalid ID format')
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        'Invalid ID format'
+      )
       return
     }
     try {
@@ -42,7 +50,11 @@ export class DepartmentController implements IEntityController {
       Logger.error('Unexpected error in DepartmentController.getById', {
         error: error instanceof Error ? error.message : String(error),
       })
-      ResponseHandler.sendErrorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to retrieve department')
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to retrieve department'
+      )
     }
   }
 
@@ -51,7 +63,8 @@ export class DepartmentController implements IEntityController {
       const department = await this.service.create(req.body.name)
       ResponseHandler.sendSuccessResponse(res, department, StatusCodes.CREATED)
     } catch (error) {
-      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
+      const statusCode =
+        error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       const message = error instanceof Error ? error.message : 'Bad request'
       ResponseHandler.sendErrorResponse(res, statusCode, message)
     }
@@ -60,14 +73,19 @@ export class DepartmentController implements IEntityController {
   public update = async (req: Request, res: Response): Promise<void> => {
     const id = parseInt(req.params.id as string)
     if (isNaN(id)) {
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'Invalid ID format')
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        'Invalid ID format'
+      )
       return
     }
     try {
       const department = await this.service.update(id, req.body.name)
       ResponseHandler.sendSuccessResponse(res, department)
     } catch (error) {
-      const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
+      const statusCode =
+        error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST
       const message = error instanceof Error ? error.message : 'Bad request'
       ResponseHandler.sendErrorResponse(res, statusCode, message)
     }
@@ -76,11 +94,15 @@ export class DepartmentController implements IEntityController {
   public delete = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id
     if (!id) {
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'No ID provided')
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        'No ID provided'
+      )
       return
     }
     try {
-      await this.service.delete(parseInt(id))
+      await this.service.delete(parseInt(id as string))
       ResponseHandler.sendSuccessResponse(res, 'Department deleted')
     } catch (error) {
       if (error instanceof AppError) {
@@ -90,7 +112,11 @@ export class DepartmentController implements IEntityController {
       Logger.error('Unexpected error in DepartmentController.delete', {
         error: error instanceof Error ? error.message : String(error),
       })
-      ResponseHandler.sendErrorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to delete department')
+      ResponseHandler.sendErrorResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to delete department'
+      )
     }
   }
 }

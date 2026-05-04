@@ -1101,8 +1101,15 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests/pending/manager/2",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests", "pending", "manager", "2"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "leave-requests",
+                    "pending",
+                    "manager",
+                    "2"
+                  ],
                   "query": [
                     {
                       "key": "from",
@@ -1164,8 +1171,15 @@
                     "header": [],
                     "url": {
                       "raw": "{{baseUrl}}/leave-requests/pending/manager/2?from=2026-07-01&to=2026-07-31",
-                      "host": ["{{baseUrl}}"],
-                      "path": ["leave-requests", "pending", "manager", "2"],
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "leave-requests",
+                        "pending",
+                        "manager",
+                        "2"
+                      ],
                       "query": [
                         {
                           "key": "from",
@@ -1207,8 +1221,15 @@
                     "header": [],
                     "url": {
                       "raw": "{{baseUrl}}/leave-requests/pending/manager/2?from=not-a-date",
-                      "host": ["{{baseUrl}}"],
-                      "path": ["leave-requests", "pending", "manager", "2"],
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "leave-requests",
+                        "pending",
+                        "manager",
+                        "2"
+                      ],
                       "query": [
                         {
                           "key": "from",
@@ -1248,8 +1269,12 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "leave-requests"
+                  ],
                   "query": [
                     {
                       "key": "leave_type",
@@ -1316,8 +1341,12 @@
                     "header": [],
                     "url": {
                       "raw": "{{baseUrl}}/leave-requests?leave_type=Vacation",
-                      "host": ["{{baseUrl}}"],
-                      "path": ["leave-requests"],
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "leave-requests"
+                      ],
                       "query": [
                         {
                           "key": "leave_type",
@@ -1733,8 +1762,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/leave-requests",
-              "host": ["{{baseUrl}}"],
-              "path": ["leave-requests"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leave-requests"
+              ],
               "query": [
                 {
                   "key": "employee_id",
@@ -1811,8 +1844,12 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?employee_id=5",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "leave-requests"
+                  ],
                   "query": [
                     {
                       "key": "employee_id",
@@ -1850,8 +1887,12 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?manager_id=2",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "leave-requests"
+                  ],
                   "query": [
                     {
                       "key": "manager_id",
@@ -1889,8 +1930,12 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?leave_type=Vacation&from=2026-04-01&to=2027-03-31",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "leave-requests"
+                  ],
                   "query": [
                     {
                       "key": "leave_type",
@@ -1936,8 +1981,12 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/leave-requests?employee_id=4&manager_id=2",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests"],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "leave-requests"
+                  ],
                   "query": [
                     {
                       "key": "employee_id",
@@ -2371,7 +2420,7 @@
       "name": "4. Additional Features",
       "item": [
         {
-          "name": "GET /reports/team-utilisation/2 - Bob's team utilisation (Manager or Admin)",
+          "name": "GET /leave-requests/calendar - Who's off in June 2026 (Manager or Admin)",
           "request": {
             "method": "GET",
             "auth": {
@@ -2385,11 +2434,11 @@
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/2"
+            "url": "{{baseUrl}}/leave-requests/calendar?from=2026-06-01&to=2026-06-30"
           },
           "response": [
             {
-              "name": "200 OK - Bob's team utilisation report",
+              "name": "200 OK - Bob sees his team's approved leave in June",
               "originalRequest": {
                 "method": "GET",
                 "auth": {
@@ -2403,7 +2452,7 @@
                   ]
                 },
                 "header": [],
-                "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/2"
+                "url": "{{baseUrl}}/leave-requests/calendar?from=2026-06-01&to=2026-06-30"
               },
               "status": "OK",
               "code": 200,
@@ -2415,10 +2464,39 @@
                 }
               ],
               "cookie": [],
-              "body": "{\"message\":\"Team utilisation report for manager_id 2\",\"data\":[{\"employee_id\":4,\"name\":\"David Jones\",\"annual_allowance\":25,\"days_used\":3,\"days_remaining\":22,\"utilisation_percent\":12},{\"employee_id\":5,\"name\":\"Eve Knowles\",\"annual_allowance\":25,\"days_used\":10,\"days_remaining\":15,\"utilisation_percent\":40}]}"
+              "body": "{\"message\": \"Leave calendar\", \"data\": [{\"employee_id\": 4, \"name\": \"David Jones\", \"department_id\": 1, \"leave_type\": \"Vacation\", \"start_date\": \"2026-06-02\", \"end_date\": \"2026-06-06\"}, {\"employee_id\": 5, \"name\": \"Eve Knowles\", \"department_id\": 1, \"leave_type\": \"Sick\", \"start_date\": \"2026-06-10\", \"end_date\": \"2026-06-11\"}]}"
             },
             {
-              "name": "403 Forbidden - Bob tries to view Carol's team utilisation",
+              "name": "200 OK - Admin sees all employees on leave in June",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/leave-requests/calendar?from=2026-06-01&to=2026-06-30"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"message\": \"Leave calendar\", \"data\": [{\"employee_id\": 4, \"name\": \"David Jones\", \"department_id\": 1, \"leave_type\": \"Vacation\", \"start_date\": \"2026-06-02\", \"end_date\": \"2026-06-06\"}]}"
+            },
+            {
+              "name": "400 Bad Request - Missing from/to params",
               "originalRequest": {
                 "method": "GET",
                 "auth": {
@@ -2432,7 +2510,167 @@
                   ]
                 },
                 "header": [],
-                "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/3"
+                "url": "{{baseUrl}}/leave-requests/calendar"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"error\": \"from and to query params are required\"}"
+            }
+          ]
+        },
+        {
+          "name": "GET /leave-requests/reports/usage - Leave usage report (Manager or Admin)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_manager_bob}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/leave-requests/reports/usage?from=2026-04-01&to=2027-03-31"
+          },
+          "response": [
+            {
+              "name": "200 OK - Bob sees his team's usage for the business year",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_manager_bob}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/leave-requests/reports/usage?from=2026-04-01&to=2027-03-31"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"message\": \"Leave usage report\", \"data\": {\"scope\": \"team of manager 2\", \"employees\": [{\"employee_id\": 4, \"name\": \"David Jones\", \"department_id\": 1, \"breakdown\": {\"Vacation\": 5, \"Sick\": 0, \"Personal\": 0}, \"total_days_used\": 5}, {\"employee_id\": 5, \"name\": \"Eve Knowles\", \"department_id\": 1, \"breakdown\": {\"Vacation\": 10, \"Sick\": 2, \"Personal\": 0}, \"total_days_used\": 12}]}}"
+            },
+            {
+              "name": "200 OK - Admin scopes usage by department 1",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/leave-requests/reports/usage?from=2026-04-01&to=2027-03-31&department_id=1"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"message\": \"Leave usage report\", \"data\": {\"scope\": \"department 1\", \"employees\": [{\"employee_id\": 4, \"name\": \"David Jones\", \"department_id\": 1, \"breakdown\": {\"Vacation\": 5, \"Sick\": 0, \"Personal\": 0}, \"total_days_used\": 5}]}}"
+            }
+          ]
+        },
+        {
+          "name": "GET /leave-requests/reports/export - Download CSV (Manager or Admin)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/leave-requests/reports/export?from=2026-04-01&to=2027-03-31"
+          },
+          "response": [
+            {
+              "name": "200 OK - CSV file downloaded",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/leave-requests/reports/export?from=2026-04-01&to=2027-03-31"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/csv"
+                },
+                {
+                  "key": "Content-Disposition",
+                  "value": "attachment; filename=\"leave-report-2026-04-01-to-2027-03-31.csv\""
+                }
+              ],
+              "cookie": [],
+              "body": "employee_id,name,department_id,leave_type,start_date,end_date,days_requested,status\n4,\"David Jones\",1,Vacation,2026-09-01,2026-09-05,5,Approved"
+            },
+            {
+              "name": "403 Forbidden - Employee cannot export",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_employee_david}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/leave-requests/reports/export?from=2026-04-01&to=2027-03-31"
               },
               "status": "Forbidden",
               "code": 403,
@@ -2444,125 +2682,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\"error\":\"You can only view utilisation for your own team\"}"
-            }
-          ]
-        },
-        {
-          "name": "GET /reports/team-utilisation/3 - Carol's team utilisation (Admin only)",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_admin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": "{{baseUrl}}/leave-requests/reports/team-utilisation/3"
-          },
-          "response": []
-        },
-        {
-          "name": "GET /reports/status-breakdown - Status breakdown (company-wide or by department)",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{jwt_admin}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/leave-requests/reports/status-breakdown",
-              "host": ["{{baseUrl}}"],
-              "path": ["leave-requests", "reports", "status-breakdown"],
-              "query": [
-                {
-                  "key": "department_id",
-                  "value": "1",
-                  "disabled": true
-                }
-              ]
-            }
-          },
-          "response": [
-            {
-              "name": "200 OK - Company-wide breakdown",
-              "originalRequest": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_admin}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [],
-                "url": "{{baseUrl}}/leave-requests/reports/status-breakdown"
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json; charset=utf-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\"message\":\"Status breakdown report\",\"data\":{\"scope\":\"company-wide\",\"totals\":{\"Pending\":0,\"Approved\":3,\"Rejected\":2,\"Cancelled\":3}}}"
-            },
-            {
-              "name": "200 OK - Engineering department only (department_id=1)",
-              "originalRequest": {
-                "method": "GET",
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "{{jwt_admin}}",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/leave-requests/reports/status-breakdown?department_id=1",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["leave-requests", "reports", "status-breakdown"],
-                  "query": [
-                    {
-                      "key": "department_id",
-                      "value": "1"
-                    }
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json; charset=utf-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\"message\":\"Status breakdown report\",\"data\":{\"scope\":\"department 1\",\"totals\":{\"Pending\":0,\"Approved\":1,\"Rejected\":2,\"Cancelled\":3}}}"
+              "body": "{\"error\": \"Access denied - requires one of: Manager, Admin\"}"
             }
           ]
         },
@@ -2621,6 +2741,421 @@
             }
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Public Holidays",
+      "item": [
+        {
+          "name": "POST /public-holidays - Create public holiday (Admin only)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/public-holidays",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-12-25\",\n  \"name\": \"Christmas Day\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created - Christmas Day added",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/public-holidays",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"date\": \"2026-12-25\",\n  \"name\": \"Christmas Day\"\n}"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"id\": 1, \"date\": \"2026-12-25\", \"name\": \"Christmas Day\"}"
+            },
+            {
+              "name": "403 Forbidden - Manager cannot create public holidays",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_manager_bob}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/public-holidays",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"date\": \"2026-12-25\",\n  \"name\": \"Christmas Day\"\n}"
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"error\": \"Access denied - requires one of: Admin\"}"
+            }
+          ]
+        },
+        {
+          "name": "GET /public-holidays - List all public holidays",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_employee_david}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/public-holidays"
+          },
+          "response": [
+            {
+              "name": "200 OK - All public holidays",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_employee_david}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/public-holidays"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "[{\"id\": 1, \"date\": \"2026-12-25\", \"name\": \"Christmas Day\"}, {\"id\": 2, \"date\": \"2026-12-26\", \"name\": \"Boxing Day\"}]"
+            }
+          ]
+        },
+        {
+          "name": "GET /public-holidays/1 - Get single public holiday",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_employee_david}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/public-holidays/1"
+          },
+          "response": [
+            {
+              "name": "200 OK - Public holiday found",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_employee_david}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/public-holidays/1"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"id\": 1, \"date\": \"2026-12-25\", \"name\": \"Christmas Day\"}"
+            },
+            {
+              "name": "404 Not Found - Holiday does not exist",
+              "originalRequest": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_employee_david}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/public-holidays/99"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"error\": \"Public holiday not found with ID: 99\"}"
+            }
+          ]
+        },
+        {
+          "name": "PATCH /public-holidays/1 - Update public holiday (Admin only)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/public-holidays/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Christmas Day (UK)\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Holiday updated",
+              "originalRequest": {
+                "method": "PATCH",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/public-holidays/1",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Christmas Day (UK)\"\n}"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"id\": 1, \"date\": \"2026-12-25\", \"name\": \"Christmas Day (UK)\"}"
+            }
+          ]
+        },
+        {
+          "name": "DELETE /public-holidays/1 - Delete public holiday (Admin only)",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/public-holidays/1"
+          },
+          "response": [
+            {
+              "name": "204 No Content - Holiday deleted",
+              "originalRequest": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": "{{baseUrl}}/public-holidays/1"
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "POST /leave-requests - Blocked by public holiday (Christmas 25 Dec)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/leave-requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": 4,\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-12-24\",\n  \"end_date\": \"2026-12-26\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "400 Bad Request - Blocked by Christmas Day",
+              "originalRequest": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwt_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/leave-requests",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"employee_id\": 4,\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-12-24\",\n  \"end_date\": \"2026-12-26\"\n}"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"error\": \"Date range includes public holiday(s): Christmas Day (2026-12-25)\"}"
+            }
+          ]
         }
       ]
     }

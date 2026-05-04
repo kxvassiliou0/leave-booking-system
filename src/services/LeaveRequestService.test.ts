@@ -5,17 +5,20 @@ import { LeaveRequestService } from './LeaveRequestService'
 import { AppError } from '../helpers/AppError'
 import { makeLeaveRequest, makeUser } from '../test/ObjectMother'
 import { LeaveRequest } from '../entities/LeaveRequest.entity'
+import { PublicHoliday } from '../entities/PublicHoliday.entity'
 import { User } from '../entities/User.entity'
 import { LeaveStatus, LeaveType, RoleType } from '../enums/index'
 
 let mockUserRepo: MockProxy<Repository<User>>
 let mockLeaveRepo: MockProxy<Repository<LeaveRequest>>
+let mockPublicHolidayRepo: MockProxy<Repository<PublicHoliday>>
 let service: LeaveRequestService
 
 beforeEach(() => {
   mockUserRepo = mock<Repository<User>>()
   mockLeaveRepo = mock<Repository<LeaveRequest>>()
-  service = new LeaveRequestService(mockUserRepo, mockLeaveRepo)
+  mockPublicHolidayRepo = mock<Repository<PublicHoliday>>()
+  service = new LeaveRequestService(mockUserRepo, mockLeaveRepo, mockPublicHolidayRepo)
   jest.clearAllMocks()
 })
 
@@ -122,6 +125,26 @@ describe('LeaveRequestService.createLeaveRequest', () => {
     )
   })
 
+  it('throws BAD_REQUEST when date range includes a public holiday', async () => {
+    // Arrange
+    const token = { id: 4, role: RoleType.Employee }
+    const user = makeUser({ id: 4, annualLeaveAllowance: 25 })
+    mockUserRepo.findOne.mockResolvedValue(user)
+    mockLeaveRepo.find.mockResolvedValue([])
+    mockLeaveRepo.createQueryBuilder.mockReturnValue(mockQBNoOverlap())
+    const holiday = { id: 1, date: new Date('2026-09-03'), name: 'Bank Holiday' } as PublicHoliday
+    mockPublicHolidayRepo.find.mockResolvedValue([holiday])
+
+    // Act & Assert
+    await expect(
+      service.createLeaveRequest(token, {
+        leave_type: 'Vacation',
+        start_date: '2026-09-01',
+        end_date: '2026-09-05',
+      })
+    ).rejects.toThrow(AppError)
+  })
+
   it('creates and returns the leave request on success', async () => {
     // Arrange
     const token = { id: 4, role: RoleType.Employee }
@@ -130,6 +153,7 @@ describe('LeaveRequestService.createLeaveRequest', () => {
     mockUserRepo.findOne.mockResolvedValue(user)
     mockLeaveRepo.find.mockResolvedValue([])
     mockLeaveRepo.createQueryBuilder.mockReturnValue(mockQBNoOverlap())
+    mockPublicHolidayRepo.find.mockResolvedValue([])
     mockLeaveRepo.create.mockReturnValue(saved)
     mockLeaveRepo.save.mockResolvedValue(saved)
 
@@ -153,6 +177,7 @@ describe('LeaveRequestService.createLeaveRequest', () => {
     mockUserRepo.findOne.mockResolvedValue(user)
     mockLeaveRepo.find.mockResolvedValue([])
     mockLeaveRepo.createQueryBuilder.mockReturnValue(mockQBNoOverlap())
+    mockPublicHolidayRepo.find.mockResolvedValue([])
     mockLeaveRepo.create.mockReturnValue(saved)
     mockLeaveRepo.save.mockResolvedValue(saved)
 
@@ -631,72 +656,110 @@ describe('LeaveRequestService.getAllLeaveRequests', () => {
   })
 })
 
-describe('LeaveRequestService.getTeamUtilisationReport', () => {
-  it('throws FORBIDDEN when manager requests another team', async () => {
+describe('LeaveRequestService.getLeaveCalendar', () => {
+  it('throws BAD_REQUEST when from or to is missing', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+
+    // Act & Assert
+    await expect(service.getLeaveCalendar(token, {})).rejects.toThrow(
+      new AppError('from and to query params are required', StatusCodes.BAD_REQUEST)
+    )
+  })
+
+  it('returns approved leave in range for admin', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+    const lr = { ...makeLeaveRequest(), user: makeUser({ id: 4 }) }
+    mockLeaveRepo.find.mockResolvedValue([lr as LeaveRequest])
+
+    // Act
+    const result = await service.getLeaveCalendar(token, { from: '2026-09-01', to: '2026-09-30' })
+
+    // Assert
+    expect(result.message).toBe('Leave calendar')
+    expect(Array.isArray(result.data)).toBe(true)
+  })
+
+  it('returns empty array when manager has no team', async () => {
+    // Arrange
+    const token = { id: 2, role: RoleType.Manager }
+    mockUserRepo.find.mockResolvedValue([])
+
+    // Act
+    const result = await service.getLeaveCalendar(token, { from: '2026-09-01', to: '2026-09-30' })
+
+    // Assert
+    expect(result.data).toEqual([])
+  })
+})
+
+describe('LeaveRequestService.getLeaveUsageReport', () => {
+  it('throws FORBIDDEN when non-admin requests department filter', async () => {
+    // Arrange
+    const token = { id: 2, role: RoleType.Employee }
+
+    // Act & Assert
+    await expect(
+      service.getLeaveUsageReport(token, { department_id: '1' })
+    ).rejects.toThrow(new AppError('Access denied', StatusCodes.FORBIDDEN))
+  })
+
+  it('returns usage report for admin company-wide', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+    mockUserRepo.find.mockResolvedValue([makeUser({ id: 4 })])
+    mockLeaveRepo.find.mockResolvedValue([makeLeaveRequest({ userId: 4, daysRequested: 3 })])
+
+    // Act
+    const result = await service.getLeaveUsageReport(token, {})
+
+    // Assert
+    expect(result.message).toBe('Leave usage report')
+    expect((result.data as { employees: unknown[] }).employees).toHaveLength(1)
+  })
+
+  it('returns usage report for manager scoped to their team', async () => {
+    // Arrange
+    const token = { id: 2, role: RoleType.Manager }
+    mockUserRepo.find.mockResolvedValue([makeUser({ id: 4, managerId: 2 })])
+    mockLeaveRepo.find.mockResolvedValue([])
+
+    // Act
+    const result = await service.getLeaveUsageReport(token, {})
+
+    // Assert
+    expect(result.message).toBe('Leave usage report')
+    expect((result.data as { scope: string }).scope).toContain('2')
+  })
+})
+
+describe('LeaveRequestService.exportLeaveReport', () => {
+  it('returns csv string and filename', async () => {
+    // Arrange
+    const token = { id: 1, role: RoleType.Admin }
+    const lr = { ...makeLeaveRequest(), user: makeUser({ id: 4 }) }
+    mockLeaveRepo.find.mockResolvedValue([lr as LeaveRequest])
+
+    // Act
+    const result = await service.exportLeaveReport(token, {
+      from: '2026-01-01',
+      to: '2026-12-31',
+    })
+
+    // Assert
+    expect(result.csv).toContain('employee_id')
+    expect(result.filename).toMatch(/\.csv$/)
+  })
+
+  it('throws FORBIDDEN when non-admin requests department filter', async () => {
     // Arrange
     const token = { id: 2, role: RoleType.Manager }
 
     // Act & Assert
-    await expect(service.getTeamUtilisationReport(token, 3)).rejects.toThrow(
-      new AppError('You can only view utilisation for your own team', StatusCodes.FORBIDDEN)
-    )
-  })
-
-  it('returns utilisation report for manager own team', async () => {
-    // Arrange
-    const token = { id: 2, role: RoleType.Manager }
-    mockUserRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-    mockUserRepo.find.mockResolvedValue([makeUser({ id: 4, managerId: 2, annualLeaveAllowance: 25 })])
-    mockLeaveRepo.find.mockResolvedValue([])
-
-    // Act
-    const result = await service.getTeamUtilisationReport(token, 2)
-
-    // Assert
-    expect(result.message).toContain('2')
-    expect(Array.isArray(result.data)).toBe(true)
-  })
-
-  it('returns utilisation report as admin for any team', async () => {
-    // Arrange
-    const token = { id: 1, role: RoleType.Admin }
-    mockUserRepo.findOne.mockResolvedValue(makeUser({ id: 2 }))
-    mockUserRepo.find.mockResolvedValue([makeUser({ id: 4, managerId: 2, annualLeaveAllowance: 25 })])
-    mockLeaveRepo.find.mockResolvedValue([])
-
-    // Act
-    const result = await service.getTeamUtilisationReport(token, 2)
-
-    // Assert
-    expect(result.message).toContain('2')
-  })
-})
-
-describe('LeaveRequestService.getStatusBreakdownReport', () => {
-  it('returns status breakdown across all leave requests', async () => {
-    // Arrange
-    mockLeaveRepo.find.mockResolvedValue([
-      makeLeaveRequest({ status: LeaveStatus.Approved }),
-      makeLeaveRequest({ status: LeaveStatus.Pending }),
-    ])
-
-    // Act
-    const result = await service.getStatusBreakdownReport({})
-
-    // Assert
-    expect(result.message).toBe('Status breakdown report')
-    expect(result.data).toMatchObject({ totals: { Approved: 1, Pending: 1 } })
-  })
-
-  it('returns empty totals when no users match department filter', async () => {
-    // Arrange
-    mockUserRepo.find.mockResolvedValue([])
-
-    // Act
-    const result = await service.getStatusBreakdownReport({ department_id: '99' })
-
-    // Assert
-    expect(result.data).toMatchObject({ totals: { Pending: 0, Approved: 0 } })
+    await expect(
+      service.exportLeaveReport(token, { department_id: '1' })
+    ).rejects.toThrow(new AppError('Access denied', StatusCodes.FORBIDDEN))
   })
 })
 

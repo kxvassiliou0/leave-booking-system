@@ -1,4 +1,4 @@
-import { BeforeInsert, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { RoleType } from '@enums'
 import {
   IsEmail,
   IsEnum,
@@ -9,11 +9,18 @@ import {
   IsString,
   MinLength,
 } from 'class-validator'
-import { RoleType } from '@enums'
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm'
+import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 import { Department } from './Department.entity.ts'
 import { JobRole } from './JobRole.entity.ts'
 import { LeaveRequest } from './LeaveRequest.entity.ts'
-import { PasswordHandler } from '../helpers/PasswordHandler.ts'
 
 @Entity()
 export class User {
@@ -68,7 +75,10 @@ export class User {
   @IsPositive()
   jobRoleId!: number
 
-  @ManyToOne(() => User, (user: User) => user.subordinates, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => User, (user: User) => user.subordinates, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   manager!: User | null
 
   @Column({ nullable: true })
@@ -77,13 +87,19 @@ export class User {
   managerId!: number | null
 
   @OneToMany(() => User, (user: User) => user.manager)
-  subordinates!: User[]
+  subordinates!: Array<User>
 
-  @OneToMany(() => LeaveRequest, (leaveRequest: LeaveRequest) => leaveRequest.user)
-  leaveRequests!: LeaveRequest[]
+  @OneToMany(
+    () => LeaveRequest,
+    (leaveRequest: LeaveRequest) => leaveRequest.user
+  )
+  leaveRequests!: Array<LeaveRequest>
 
-  @OneToMany(() => LeaveRequest, (leaveRequest: LeaveRequest) => leaveRequest.reviewedBy)
-  reviewedLeaveRequests!: LeaveRequest[]
+  @OneToMany(
+    () => LeaveRequest,
+    (leaveRequest: LeaveRequest) => leaveRequest.reviewedBy
+  )
+  reviewedLeaveRequests!: Array<LeaveRequest>
 
   @BeforeInsert()
   hashPassword(): void {

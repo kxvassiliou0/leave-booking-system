@@ -23,12 +23,9 @@ const mockLeaveController = {
   getRemainingLeave: jest.fn((req, res) =>
     res.status(StatusCodes.OK).json({ employeeId: req.params.employee_id })
   ),
-  getTeamUtilisationReport: jest.fn((req, res) =>
-    res.status(StatusCodes.OK).json({ managerId: req.params.manager_id })
-  ),
-  getStatusBreakdownReport: jest.fn((_req, res) =>
-    res.status(StatusCodes.OK).json({ scope: 'company-wide' })
-  ),
+  getLeaveCalendar: jest.fn((_req, res) => res.status(StatusCodes.OK).json([])),
+  getLeaveUsageReport: jest.fn((_req, res) => res.status(StatusCodes.OK).json({})),
+  exportLeaveReport: jest.fn((_req, res) => res.status(StatusCodes.OK).send('csv')),
 } as unknown as LeaveRequestController
 
 const router = Router()
@@ -160,28 +157,30 @@ describe('LeaveRouter', () => {
     expect(response.status).toBe(StatusCodes.OK)
   })
 
-  it('GET /leave-requests/reports/team-utilisation/:manager_id calls getTeamUtilisationReport', async () => {
-    // Arrange
-    const managerId = '3'
-
+  it('GET /leave-requests/calendar calls getLeaveCalendar', async () => {
     // Act
-    const response = await request(app).get(`${BASE_URL}/reports/team-utilisation/${managerId}`)
+    const response = await request(app).get(`${BASE_URL}/calendar?from=2026-09-01&to=2026-09-30`)
 
     // Assert
-    const reqArg = (mockLeaveController.getTeamUtilisationReport as jest.Mock).mock.calls[0][0]
-    expect(reqArg.params.manager_id).toBe(managerId)
-    expect(mockLeaveController.getTeamUtilisationReport).toHaveBeenCalled()
+    expect(mockLeaveController.getLeaveCalendar).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
   })
 
-  it('GET /leave-requests/reports/status-breakdown calls getStatusBreakdownReport', async () => {
-    // Arrange — no additional setup needed
-
+  it('GET /leave-requests/reports/usage calls getLeaveUsageReport', async () => {
     // Act
-    const response = await request(app).get(`${BASE_URL}/reports/status-breakdown`)
+    const response = await request(app).get(`${BASE_URL}/reports/usage`)
 
     // Assert
-    expect(mockLeaveController.getStatusBreakdownReport).toHaveBeenCalled()
+    expect(mockLeaveController.getLeaveUsageReport).toHaveBeenCalled()
+    expect(response.status).toBe(StatusCodes.OK)
+  })
+
+  it('GET /leave-requests/reports/export calls exportLeaveReport', async () => {
+    // Act
+    const response = await request(app).get(`${BASE_URL}/reports/export`)
+
+    // Assert
+    expect(mockLeaveController.exportLeaveReport).toHaveBeenCalled()
     expect(response.status).toBe(StatusCodes.OK)
   })
 })

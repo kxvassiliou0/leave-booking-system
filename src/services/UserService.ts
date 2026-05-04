@@ -9,13 +9,14 @@ import type { IUserService } from '../types/IUserService.ts'
 export class UserService implements IUserService {
   constructor(private readonly repo: Repository<User>) {}
 
-  async getAll(): Promise<User[]> {
+  async getAll(): Promise<Array<User>> {
     return this.repo.find()
   }
 
   async getById(id: number): Promise<User> {
     const user = await this.repo.findOne({ where: { id } })
-    if (!user) throw new AppError(`User not found with ID: ${id}`, StatusCodes.NOT_FOUND)
+    if (!user)
+      throw new AppError(`User not found with ID: ${id}`, StatusCodes.NOT_FOUND)
     return user
   }
 
@@ -38,7 +39,9 @@ export class UserService implements IUserService {
     if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
     Object.assign(user, data)
     if (data.password) {
-      const { hashedPassword, salt } = PasswordHandler.hashPassword(data.password)
+      const { hashedPassword, salt } = PasswordHandler.hashPassword(
+        data.password
+      )
       user.password = hashedPassword
       user.salt = salt
     }
@@ -55,6 +58,7 @@ export class UserService implements IUserService {
 
   async delete(id: number): Promise<void> {
     const result = await this.repo.delete(id)
-    if (result.affected === 0) throw new AppError('User not found', StatusCodes.NOT_FOUND)
+    if (result.affected === 0)
+      throw new AppError('User not found', StatusCodes.NOT_FOUND)
   }
 }

@@ -14,5 +14,5 @@ export class JobRole {
   name!: string
 
   @OneToMany(() => User, (user: User) => user.jobRole)
-  users!: User[]
+  users!: Array<User>
 }

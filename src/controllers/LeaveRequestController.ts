@@ -123,31 +123,41 @@ export class LeaveRequestController {
     }
   }
 
-  getTeamUtilisationReport = async (
-    req: Request & { params: { manager_id: string } },
-    res: Response
-  ): Promise<void> => {
-    const managerId = parseInt(req.params.manager_id, 10)
-    if (isNaN(managerId)) {
-      ResponseHandler.sendErrorResponse(res, StatusCodes.BAD_REQUEST, 'Invalid manager ID')
-      return
-    }
+  getLeaveCalendar = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await this.service.getTeamUtilisationReport(req.signedInUser?.token, managerId)
+      const result = await this.service.getLeaveCalendar(
+        req.signedInUser?.token,
+        req.query as { from?: string; to?: string }
+      )
       res.status(StatusCodes.OK).json(result)
     } catch (err) {
-      this.handleError(res, 'getTeamUtilisationReport', err)
+      this.handleError(res, 'getLeaveCalendar', err)
     }
   }
 
-  getStatusBreakdownReport = async (req: Request, res: Response): Promise<void> => {
+  getLeaveUsageReport = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await this.service.getStatusBreakdownReport(
+      const result = await this.service.getLeaveUsageReport(
+        req.signedInUser?.token,
         req.query as Record<string, unknown>
       )
       res.status(StatusCodes.OK).json(result)
     } catch (err) {
-      this.handleError(res, 'getStatusBreakdownReport', err)
+      this.handleError(res, 'getLeaveUsageReport', err)
+    }
+  }
+
+  exportLeaveReport = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { csv, filename } = await this.service.exportLeaveReport(
+        req.signedInUser?.token,
+        req.query as Record<string, unknown>
+      )
+      res.setHeader('Content-Type', 'text/csv')
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.status(StatusCodes.OK).send(csv)
+    } catch (err) {
+      this.handleError(res, 'exportLeaveReport', err)
     }
   }
 }
