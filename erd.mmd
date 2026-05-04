@@ -1,4 +1,5 @@
 erDiagram
+direction LR
     JOB_ROLE {
         int id PK
         string name
@@ -32,6 +33,11 @@ erDiagram
         LeaveType leaveType
         text managerNote
         text reason
+    }
+    PUBLIC_HOLIDAY {
+        int id PK
+        date date
+        string name
     }
     DEPARTMENT ||--o{ USER : departmentId
     JOB_ROLE ||--o{ USER : jobRoleId
