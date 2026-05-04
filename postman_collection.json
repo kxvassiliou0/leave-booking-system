@@ -2379,13 +2379,29 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{jwt_manager_bob}}",
+                  "value": "{{jwt_admin}}",
                   "type": "string"
                 }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests/calendar?from=2026-06-01&to=2026-06-30"
+            "url": {
+              "raw": "{{baseUrl}}/leave-requests/calendar",
+              "host": ["{{baseUrl}}"],
+              "path": ["leave-requests", "calendar"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-06-01",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-30",
+                  "disabled": false
+                }
+              ]
+            }
           },
           "response": [
             {
@@ -2486,13 +2502,29 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{jwt_manager_bob}}",
+                  "value": "{{jwt_admin}}",
                   "type": "string"
                 }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests/reports/usage?from=2026-04-01&to=2027-03-31"
+            "url": {
+              "raw": "{{baseUrl}}/leave-requests/reports/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["leave-requests", "reports", "usage"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-04-01",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2027-03-31",
+                  "disabled": false
+                }
+              ]
+            }
           },
           "response": [
             {
@@ -2570,7 +2602,23 @@
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/leave-requests/reports/export?from=2026-04-01&to=2027-03-31"
+            "url": {
+              "raw": "{{baseUrl}}/leave-requests/reports/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["leave-requests", "reports", "export"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-04-01",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2027-03-31",
+                  "disabled": false
+                }
+              ]
+            }
           },
           "response": [
             {
@@ -2718,7 +2766,11 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/public-holidays",
+            "url": {
+              "raw": "{{baseUrl}}/public-holidays",
+              "host": ["{{baseUrl}}"],
+              "path": ["public-holidays"]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"date\": \"2026-12-25\",\n  \"name\": \"Christmas Day\"\n}"
@@ -2812,13 +2864,17 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{jwt_employee_david}}",
+                  "value": "{{jwt_admin}}",
                   "type": "string"
                 }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/public-holidays"
+            "url": {
+              "raw": "{{baseUrl}}/public-holidays",
+              "host": ["{{baseUrl}}"],
+              "path": ["public-holidays"]
+            }
           },
           "response": [
             {
@@ -2861,13 +2917,17 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{jwt_employee_david}}",
+                  "value": "{{jwt_admin}}",
                   "type": "string"
                 }
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/public-holidays/1"
+            "url": {
+              "raw": "{{baseUrl}}/public-holidays/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["public-holidays", "1"]
+            }
           },
           "response": [
             {
@@ -2950,7 +3010,11 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/public-holidays/1",
+            "url": {
+              "raw": "{{baseUrl}}/public-holidays/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["public-holidays", "1"]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Christmas Day (UK)\"\n}"
@@ -3012,7 +3076,11 @@
               ]
             },
             "header": [],
-            "url": "{{baseUrl}}/public-holidays/1"
+            "url": {
+              "raw": "{{baseUrl}}/public-holidays/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["public-holidays", "1"]
+            }
           },
           "response": [
             {
@@ -3061,7 +3129,11 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/leave-requests",
+            "url": {
+              "raw": "{{baseUrl}}/leave-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["leave-requests"]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"employee_id\": 4,\n  \"leave_type\": \"Vacation\",\n  \"start_date\": \"2026-12-24\",\n  \"end_date\": \"2026-12-26\"\n}"
