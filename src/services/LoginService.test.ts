@@ -1,12 +1,12 @@
-import { mock, MockProxy } from "jest-mock-extended";
 import { StatusCodes } from "http-status-codes";
+import { mock, MockProxy } from "jest-mock-extended";
 import type { Repository, SelectQueryBuilder } from "typeorm";
-import { LoginService } from "./LoginService";
+import { User } from "../entities/User.entity";
 import { AppError } from "../helpers/AppError";
 import { PasswordHandler } from "../helpers/PasswordHandler";
 import { makeUser } from "../test/ObjectMother";
 import { TEST_JWT_SECRET } from "../test/testConfig";
-import { User } from "../entities/User.entity";
+import { LoginService } from "./LoginService";
 
 jest.mock("jsonwebtoken", () => ({ sign: jest.fn(() => "mocked.jwt.token") }));
 
@@ -22,7 +22,7 @@ beforeEach(() => {
 
 describe("LoginService.login", () => {
   it("throws BAD_REQUEST when email or password is missing", async () => {
-    // Arrange — no setup needed
+    // Arrange - no setup needed
 
     // Act & Assert
     await expect(service.login("", "Password123!")).rejects.toThrow(

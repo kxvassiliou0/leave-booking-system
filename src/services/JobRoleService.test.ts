@@ -1,10 +1,10 @@
-import { mock, MockProxy } from "jest-mock-extended";
 import { StatusCodes } from "http-status-codes";
+import { mock, MockProxy } from "jest-mock-extended";
 import type { DeleteResult, Repository } from "typeorm";
-import { JobRoleService } from "./JobRoleService";
+import { JobRole } from "../entities/JobRole.entity";
 import { AppError } from "../helpers/AppError";
 import { makeJobRole } from "../test/ObjectMother";
-import { JobRole } from "../entities/JobRole.entity";
+import { JobRoleService } from "./JobRoleService";
 
 let mockRepo: MockProxy<Repository<JobRole>>;
 let service: JobRoleService;
@@ -71,7 +71,7 @@ describe("JobRoleService.create", () => {
   });
 
   it("throws UNPROCESSABLE_ENTITY when name is empty", async () => {
-    // Arrange — empty name triggers class-validator
+    // Arrange - empty name triggers class-validator
 
     // Act & Assert
     await expect(service.create("")).rejects.toThrow(AppError);
@@ -101,6 +101,15 @@ describe("JobRoleService.update", () => {
     await expect(service.update(99, "New Name")).rejects.toThrow(
       new AppError("Job role not found", StatusCodes.NOT_FOUND),
     );
+  });
+
+  it("throws UNPROCESSABLE_ENTITY when updated name is empty", async () => {
+    // Arrange
+    const existing = makeJobRole();
+    mockRepo.findOneBy.mockResolvedValue(existing);
+
+    // Act & Assert
+    await expect(service.update(1, "")).rejects.toThrow(AppError);
   });
 });
 
@@ -136,5 +145,14 @@ describe("JobRoleService.delete", () => {
         StatusCodes.CONFLICT,
       ),
     );
+  });
+
+  it("rethrows unknown errors that are not AppError or FK violations", async () => {
+    // Arrange
+    const unknownError = new Error("unexpected storage error");
+    mockRepo.delete.mockRejectedValue(unknownError);
+
+    // Act & Assert
+    await expect(service.delete(1)).rejects.toThrow(unknownError);
   });
 });

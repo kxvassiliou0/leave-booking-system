@@ -96,6 +96,19 @@ describe("UserController.getById", () => {
     // Assert
     expect(res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
   });
+
+  it("returns 500 on unexpected non-AppError from service", async () => {
+    // Arrange
+    mockService.getById.mockRejectedValue(new Error("DB failure"));
+    const req = mockRequest({ id: "1" });
+    const res = mockResponse();
+
+    // Act
+    await controller.getById(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR);
+  });
 });
 
 describe("UserController.create", () => {
@@ -179,6 +192,18 @@ describe("UserController.update", () => {
 });
 
 describe("UserController.delete", () => {
+  it("returns 400 when no id is provided", async () => {
+    // Arrange
+    const req = mockRequest(); // params empty → req.params.id is undefined
+    const res = mockResponse();
+
+    // Act
+    await controller.delete(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+  });
+
   it("returns 200 when user is deleted successfully", async () => {
     // Arrange
     mockService.delete.mockResolvedValue();

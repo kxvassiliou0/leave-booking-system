@@ -1,10 +1,10 @@
-import request from "supertest";
 import express, { Router } from "express";
-import type { AuthenticatedJWTRequest } from "../interfaces/AuthenticatedJWTRequest.interface";
-import { RoleType } from "../enums/index";
-import { LeaveRouter } from "./LeaveRouter";
-import { LeaveRequestController } from "../controllers/LeaveRequestController";
 import { StatusCodes } from "http-status-codes";
+import request from "supertest";
+import { LeaveRequestController } from "../controllers/LeaveRequestController";
+import { RoleType } from "../enums/index";
+import type { AuthenticatedJWTRequest } from "../interfaces/AuthenticatedJWTRequest.interface";
+import { LeaveRouter } from "./LeaveRouter";
 
 const mockLeaveController = {
   getAllLeaveRequests: jest.fn((_req, res) =>
@@ -151,7 +151,7 @@ describe("LeaveRouter", () => {
   });
 
   it("GET /leave-requests calls getAllLeaveRequests", async () => {
-    // Arrange — no additional setup needed
+    // Arrange - no additional setup needed
 
     // Act
     const response = await request(app).get(BASE_URL);

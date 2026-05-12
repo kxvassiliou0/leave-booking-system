@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { Department } from "../entities/Department.entity";
 import { JobRole } from "../entities/JobRole.entity";
 import { LeaveRequest } from "../entities/LeaveRequest.entity";
+import { PublicHoliday } from "../entities/PublicHoliday.entity";
 import { User } from "../entities/User.entity";
 import { LeaveStatus, LeaveType, RoleType } from "../enums/index";
 import type { AuthenticatedJWTRequest } from "../interfaces/AuthenticatedJWTRequest.interface";
@@ -90,6 +91,17 @@ export function makeDepartment(
   return Object.assign(new Department(), {
     id: 1,
     name: "Engineering",
+    ...overrides,
+  });
+}
+
+export function makePublicHoliday(
+  overrides: Partial<PublicHoliday> = {},
+): PublicHoliday {
+  return Object.assign(new PublicHoliday(), {
+    id: 1,
+    date: new Date("2026-12-25"),
+    name: "Christmas Day",
     ...overrides,
   });
 }

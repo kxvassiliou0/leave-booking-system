@@ -100,6 +100,19 @@ describe("DepartmentController.getById", () => {
     // Assert
     expect(res.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
   });
+
+  it("returns 500 on unexpected non-AppError from service", async () => {
+    // Arrange
+    mockService.getById.mockRejectedValue(new Error("DB failure"));
+    const req = mockRequest({ id: "1" });
+    const res = mockResponse();
+
+    // Act
+    await controller.getById(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR);
+  });
 });
 
 describe("DepartmentController.create", () => {
@@ -161,9 +174,49 @@ describe("DepartmentController.update", () => {
     expect(mockService.update).toHaveBeenCalledWith(1, "Software Engineering");
     expect(res.status).toHaveBeenCalledWith(StatusCodes.OK);
   });
+
+  it("returns 422 when service throws UNPROCESSABLE_ENTITY AppError", async () => {
+    // Arrange
+    mockService.update.mockRejectedValue(
+      new AppError("name must not be empty", StatusCodes.UNPROCESSABLE_ENTITY),
+    );
+    const req = mockRequest({ id: "1" }, { name: "" });
+    const res = mockResponse();
+
+    // Act
+    await controller.update(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.UNPROCESSABLE_ENTITY);
+  });
+
+  it("returns 400 when service throws a non-AppError", async () => {
+    // Arrange
+    mockService.update.mockRejectedValue(new Error("unexpected error"));
+    const req = mockRequest({ id: "1" }, { name: "X" });
+    const res = mockResponse();
+
+    // Act
+    await controller.update(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+  });
 });
 
 describe("DepartmentController.delete", () => {
+  it("returns 400 when no id is provided", async () => {
+    // Arrange
+    const req = mockRequest(); // params empty → req.params.id is undefined
+    const res = mockResponse();
+
+    // Act
+    await controller.delete(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
+  });
+
   it("returns 200 when department is deleted successfully", async () => {
     // Arrange
     mockService.delete.mockResolvedValue();

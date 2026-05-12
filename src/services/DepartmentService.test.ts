@@ -1,10 +1,10 @@
-import { mock, MockProxy } from "jest-mock-extended";
 import { StatusCodes } from "http-status-codes";
+import { mock, MockProxy } from "jest-mock-extended";
 import type { DeleteResult, Repository } from "typeorm";
-import { DepartmentService } from "./DepartmentService";
+import { Department } from "../entities/Department.entity";
 import { AppError } from "../helpers/AppError";
 import { makeDepartment } from "../test/ObjectMother";
-import { Department } from "../entities/Department.entity";
+import { DepartmentService } from "./DepartmentService";
 
 let mockRepo: MockProxy<Repository<Department>>;
 let service: DepartmentService;
@@ -71,7 +71,7 @@ describe("DepartmentService.create", () => {
   });
 
   it("throws UNPROCESSABLE_ENTITY when name is empty", async () => {
-    // Arrange — empty name triggers class-validator
+    // Arrange - empty name triggers class-validator
 
     // Act & Assert
     await expect(service.create("")).rejects.toThrow(AppError);
@@ -101,6 +101,15 @@ describe("DepartmentService.update", () => {
     await expect(service.update(99, "New Name")).rejects.toThrow(
       new AppError("Department not found", StatusCodes.NOT_FOUND),
     );
+  });
+
+  it("throws UNPROCESSABLE_ENTITY when updated name is empty", async () => {
+    // Arrange
+    const existing = makeDepartment();
+    mockRepo.findOneBy.mockResolvedValue(existing);
+
+    // Act & Assert
+    await expect(service.update(1, "")).rejects.toThrow(AppError);
   });
 });
 
@@ -136,5 +145,14 @@ describe("DepartmentService.delete", () => {
         StatusCodes.CONFLICT,
       ),
     );
+  });
+
+  it("rethrows unknown errors that are not AppError or FK violations", async () => {
+    // Arrange
+    const unknownError = new Error("unexpected storage error");
+    mockRepo.delete.mockRejectedValue(unknownError);
+
+    // Act & Assert
+    await expect(service.delete(1)).rejects.toThrow(unknownError);
   });
 });

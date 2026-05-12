@@ -1,10 +1,10 @@
-import { mock, MockProxy } from "jest-mock-extended";
 import { StatusCodes } from "http-status-codes";
+import { mock, MockProxy } from "jest-mock-extended";
 import type { DeleteResult, Repository } from "typeorm";
-import { UserService } from "./UserService";
+import { User } from "../entities/User.entity";
 import { AppError } from "../helpers/AppError";
 import { makeUser } from "../test/ObjectMother";
-import { User } from "../entities/User.entity";
+import { UserService } from "./UserService";
 
 let mockRepo: MockProxy<Repository<User>>;
 let service: UserService;
@@ -77,6 +77,24 @@ describe("UserService.create", () => {
     expect(mockRepo.save).toHaveBeenCalledTimes(1);
     expect(result).toEqual(user);
   });
+
+  it("throws UNPROCESSABLE_ENTITY when create data fails validation", async () => {
+    // Arrange - invalid email fails @IsEmail() validator
+
+    // Act & Assert
+    await expect(
+      service.create({
+        firstName: "Alice",
+        lastName: "Smith",
+        email: "not-an-email",
+        password: "Password123!",
+        role: "Employee" as import("../enums").RoleType,
+        annualLeaveAllowance: 25,
+        departmentId: 1,
+        jobRoleId: 1,
+      }),
+    ).rejects.toThrow(AppError);
+  });
 });
 
 describe("UserService.update", () => {
@@ -104,6 +122,34 @@ describe("UserService.update", () => {
     // Act & Assert
     await expect(service.update(99, {})).rejects.toThrow(
       new AppError("User not found", StatusCodes.NOT_FOUND),
+    );
+  });
+
+  it("hashes the new password when password is included in update data", async () => {
+    // Arrange
+    const user = makeUser({ password: "OldPassword1!" });
+    const updated = makeUser({ password: "hashed-new-password" });
+    mockRepo.findOneBy
+      .mockResolvedValueOnce(user)
+      .mockResolvedValueOnce(updated);
+    mockRepo.save.mockResolvedValue(updated);
+
+    // Act
+    const result = await service.update(1, { password: "NewPassword123!" });
+
+    // Assert
+    expect(mockRepo.save).toHaveBeenCalled();
+    expect(result).toEqual(updated);
+  });
+
+  it("throws UNPROCESSABLE_ENTITY when update data fails validation", async () => {
+    // Arrange - invalid email fails @IsEmail() validator
+    const user = makeUser();
+    mockRepo.findOneBy.mockResolvedValueOnce(user);
+
+    // Act & Assert
+    await expect(service.update(1, { email: "not-an-email" })).rejects.toThrow(
+      AppError,
     );
   });
 });

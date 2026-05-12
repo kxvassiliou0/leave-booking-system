@@ -1,13 +1,13 @@
-import { mock, MockProxy } from "jest-mock-extended";
 import { StatusCodes } from "http-status-codes";
+import { mock, MockProxy } from "jest-mock-extended";
 import type { Repository, SelectQueryBuilder } from "typeorm";
-import { LeaveRequestService } from "./LeaveRequestService";
-import { AppError } from "../helpers/AppError";
-import { makeLeaveRequest, makeUser } from "../test/ObjectMother";
 import { LeaveRequest } from "../entities/LeaveRequest.entity";
 import { PublicHoliday } from "../entities/PublicHoliday.entity";
 import { User } from "../entities/User.entity";
 import { LeaveStatus, LeaveType, RoleType } from "../enums/index";
+import { AppError } from "../helpers/AppError";
+import { makeLeaveRequest, makeUser } from "../test/ObjectMother";
+import { LeaveRequestService } from "./LeaveRequestService";
 
 let mockUserRepo: MockProxy<Repository<User>>;
 let mockLeaveRepo: MockProxy<Repository<LeaveRequest>>;
@@ -219,7 +219,7 @@ describe("LeaveRequestService.createLeaveRequest", () => {
 
 describe("LeaveRequestService.deleteLeaveRequest", () => {
   it("throws BAD_REQUEST when employee_id is missing from token and body", async () => {
-    // Arrange — undefined token yields no employee_id
+    // Arrange - undefined token yields no employee_id
 
     // Act & Assert
     await expect(service.deleteLeaveRequest(undefined, {})).rejects.toThrow(
@@ -408,7 +408,7 @@ describe("LeaveRequestService.approveLeaveRequest", () => {
     // Act
     const result = await service.approveLeaveRequest(token, {
       leave_request_id: 1,
-      reason: "Approved — enjoy your time off!",
+      reason: "Approved - enjoy your time off!",
     });
 
     // Assert

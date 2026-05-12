@@ -1,9 +1,9 @@
-import { mock, MockProxy } from "jest-mock-extended";
 import { StatusCodes } from "http-status-codes";
-import { LoginController } from "./LoginController";
+import { mock, MockProxy } from "jest-mock-extended";
 import { AppError } from "../helpers/AppError";
-import type { ILoginService } from "../types/ILoginService";
 import { mockRequest, mockResponse } from "../test/ObjectMother";
+import type { ILoginService } from "../types/ILoginService";
+import { LoginController } from "./LoginController";
 
 let mockService: MockProxy<ILoginService>;
 let controller: LoginController;
@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 describe("LoginController", () => {
-  it("login — success returns 202 with JWT token", async () => {
+  it("login - success returns 202 with JWT token", async () => {
     // Arrange
     const email = "alice@company.com";
     const password = "Password123!";
@@ -33,7 +33,7 @@ describe("LoginController", () => {
     expect(res.send).toHaveBeenCalledWith(token);
   });
 
-  it("login — user not found returns 401", async () => {
+  it("login - user not found returns 401", async () => {
     // Arrange
     mockService.login.mockRejectedValue(
       new AppError("User not found", StatusCodes.UNAUTHORIZED),
@@ -51,7 +51,7 @@ describe("LoginController", () => {
     expect(res.status).toHaveBeenCalledWith(StatusCodes.UNAUTHORIZED);
   });
 
-  it("login — incorrect password returns 401", async () => {
+  it("login - incorrect password returns 401", async () => {
     // Arrange
     mockService.login.mockRejectedValue(
       new AppError("Incorrect password", StatusCodes.UNAUTHORIZED),
@@ -69,7 +69,7 @@ describe("LoginController", () => {
     expect(res.status).toHaveBeenCalledWith(StatusCodes.UNAUTHORIZED);
   });
 
-  it("login — missing credentials returns 400", async () => {
+  it("login - missing credentials returns 400", async () => {
     // Arrange
     mockService.login.mockRejectedValue(
       new AppError("Email and password are required", StatusCodes.BAD_REQUEST),
@@ -84,7 +84,7 @@ describe("LoginController", () => {
     expect(res.status).toHaveBeenCalledWith(StatusCodes.BAD_REQUEST);
   });
 
-  it("login — unexpected error returns 400 fallback", async () => {
+  it("login - unexpected error returns 400 fallback", async () => {
     // Arrange
     mockService.login.mockRejectedValue(new Error("unexpected"));
     const req = mockRequest({}, { email: "alice@company.com", password: "pw" });
