@@ -330,7 +330,10 @@ export class LeaveRequestService implements ILeaveRequestService {
       throw new AppError("Invalid leave request ID", StatusCodes.BAD_REQUEST);
     }
     if (leaveRequest.status !== LeaveStatus.Pending) {
-      throw new AppError("Invalid leave request ID", StatusCodes.BAD_REQUEST);
+      throw new AppError(
+        "Leave request is not in a pending state",
+        StatusCodes.BAD_REQUEST,
+      );
     }
 
     if (token?.role === RoleType.Manager) {
@@ -376,7 +379,10 @@ export class LeaveRequestService implements ILeaveRequestService {
       throw new AppError("Invalid leave request ID", StatusCodes.BAD_REQUEST);
     }
     if (leaveRequest.status !== LeaveStatus.Pending) {
-      throw new AppError("Invalid leave request ID", StatusCodes.BAD_REQUEST);
+      throw new AppError(
+        "Leave request is not in a pending state",
+        StatusCodes.BAD_REQUEST,
+      );
     }
 
     if (token?.role === RoleType.Manager) {
@@ -780,11 +786,10 @@ export class LeaveRequestService implements ILeaveRequestService {
 
     const employees = users.map((user) => {
       const userRequests = requests.filter((lr) => lr.userId === user.id);
-      const breakdown: Record<string, number> = {
-        Vacation: 0,
-        Sick: 0,
-        Personal: 0,
-      };
+      const breakdown: Record<string, number> = Object.values(LeaveType).reduce(
+        (acc, t) => ({ ...acc, [t]: 0 }),
+        {} as Record<string, number>,
+      );
       let total = 0;
       for (const lr of userRequests) {
         breakdown[lr.leaveType] =

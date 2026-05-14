@@ -30,7 +30,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.body,
       );
-      res.status(StatusCodes.CREATED).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.CREATED,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "createLeaveRequest", err);
     }
@@ -42,7 +47,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.body,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "deleteLeaveRequest", err);
     }
@@ -54,7 +64,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.body,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "approveLeaveRequest", err);
     }
@@ -66,7 +81,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.body,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "rejectLeaveRequest", err);
     }
@@ -90,7 +110,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         employeeId,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "getLeaveRequestsByEmployee", err);
     }
@@ -114,7 +139,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         employeeId,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "getRemainingLeave", err);
     }
@@ -139,7 +169,12 @@ export class LeaveRequestController {
         managerId,
         req.query as { from?: string; to?: string },
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "getPendingRequestsByManager", err);
     }
@@ -151,7 +186,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.query as Record<string, unknown>,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "getAllLeaveRequests", err);
     }
@@ -163,7 +203,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.query as { from?: string; to?: string },
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "getLeaveCalendar", err);
     }
@@ -175,7 +220,12 @@ export class LeaveRequestController {
         req.signedInUser?.token,
         req.query as Record<string, unknown>,
       );
-      res.status(StatusCodes.OK).json(result);
+      ResponseHandler.sendSuccessResponse(
+        res,
+        result.data,
+        StatusCodes.OK,
+        result.message,
+      );
     } catch (err) {
       this.handleError(res, "getLeaveUsageReport", err);
     }

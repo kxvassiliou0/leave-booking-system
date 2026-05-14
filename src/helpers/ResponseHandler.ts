@@ -5,8 +5,11 @@ export class ResponseHandler {
     res: Response,
     data: unknown,
     statusCode = 200,
+    message?: string,
   ): void {
-    res.status(statusCode).json({ data });
+    const body: Record<string, unknown> = { data };
+    if (message !== undefined) body.message = message;
+    res.status(statusCode).json(body);
   }
 
   static sendErrorResponse(

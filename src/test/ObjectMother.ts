@@ -7,11 +7,11 @@ import { User } from "../entities/User.entity";
 import { LeaveStatus, LeaveType, RoleType } from "../enums/index";
 import type { AuthenticatedJWTRequest } from "../interfaces/AuthenticatedJWTRequest.interface";
 
-export function mockRequest(
-  params: Record<string, string> = {},
+export function mockRequest<P extends Record<string, string> = Record<string, string>>(
+  params: P = {} as P,
   body: Record<string, unknown> = {},
-): Request {
-  return { params, body } as unknown as Request;
+): Request & { params: P } {
+  return { params, body } as unknown as Request & { params: P };
 }
 
 export function mockResponse(): Response {
